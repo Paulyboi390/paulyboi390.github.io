@@ -1,6 +1,6 @@
 <html>
 <head>
-<title>Switch 2 Vuln Scanner</title>
+<title>Switch 2 Vuln Scanner UI V2</title>
 </head>
 <body>
 <h1>Switch 2 Vuln Scanner UI V2</h1>
@@ -15,15 +15,13 @@
 <button onclick="testGeolocation()">Test Geolocation (Location Vuln)</button>
 <button onclick="testCameraAccess()">Test Camera Access (Media Vuln)</button>
 <button onclick="testNotificationSpam()">Test Notification Spam (DoS Alert)</button>
-<button onclick="openFileBrowser()">Open File Browser (Probe Vauln)</button>
+<button onclick="openFileBrowser()">Open File Browser (Probe Vuln)</button>
 <div id="output"></div>
 <script>
-// Output function (buggy: No escape, XSS vauln if msg bad)
 function logOutput(msg) {
-  document.getElementById("output").innerHTML += msg + "<br>"; // No escape—XSS if msg = "<script>alert('hack')</script>".
+  document.getElementById("output").innerHTML += msg + "<br>";
 }
 
-// Start All Tests (get cooking, run ton)
 function startAllTests() {
   logOutput("Getting cooking—running all tests...");
   testInfiniteLoop();
@@ -38,28 +36,25 @@ function startAllTests() {
   openFileBrowser();
 }
 
-// Test 1: Infinite Loop to Crash CPU (fans pump)
 function testInfiniteLoop() {
   logOutput("Running infinite loop...");
-  while (true) {} // Infinite CPU spin—browser freeze, kernel panic if escalates.
+  while (true) {}
 }
 
-// Test 2: Memory Leak via Array Fill (OOB allocation probe)
 function testMemoryLeak() {
   logOutput("Running memory leak...");
   let arr = [];
   while (true) {
-    arr.push(new ArrayBuffer(1024 * 1024)); // 1MB chunks—exhaust memory, probe WebKit leak to kernel OOB.
+    arr.push(new ArrayBuffer(1024 * 1024));
   }
 }
 
-// Test 3: Local File Access Attempt (sandbox block, probe vauln)
 function testFileAccess() {
   logOutput("Running file access probe...");
   let xhr = new XMLHttpRequest();
-  xhr.open("GET", "file:///etc/passwd", true); // Attempt browser files—blocked, but probe for sandbox vauln.
+  xhr.open("GET", "file:///etc/passwd", true);
   xhr.onload = function () {
-    logOutput("Leak: " + xhr.responseText); // If leaks, log (buggy: No escape, XSS vauln).
+    logOutput("Leak: " + xhr.responseText);
   };
   xhr.onerror = function () {
     logOutput("File access blocked—sandbox strong");
@@ -67,79 +62,72 @@ function testFileAccess() {
   xhr.send();
 }
 
-// Test 4: IndexedDB Access (browser "files" simulation, storage vauln)
 function testIndexedDB() {
   logOutput("Running IndexedDB probe...");
   let request = indexedDB.open("testDB", 1);
   request.onupgradeneeded = function (e) {
-    e.target.result.createObjectStore("files"); // Probe storage—leak or corrupt browser files.
+    e.target.result.createObjectStore("files");
   };
   request.onsuccess = function (e) {
     logOutput("DB opened—storage access OK");
   };
   request.onerror = function (e) {
-    logOutput("DB error—possible vauln");
+    logOutput("DB error—possible vuln");
   };
 }
 
-// New Test 5: LocalStorage Leak (data persist vauln)
 function testLocalStorage() {
   logOutput("Running LocalStorage probe...");
-  localStorage.setItem('test', 'leak me'); // Set data—probe persist.
+  localStorage.setItem('test', 'leak me');
   let data = localStorage.getItem('test');
-  logOutput("LocalStorage leak: " + data); // Leak if not cleared.
-  localStorage.clear(); // Buggy: No check if clear works, vauln if denied.
+  logOutput("LocalStorage leak: " + data);
+  localStorage.clear();
 }
 
-// New Test 6: Cookie Access (privacy vauln)
 function testCookieAccess() {
   logOutput("Running Cookie probe...");
-  document.cookie = "test=leak me"; // Set cookie—probe persist.
-  logOutput("Cookie leak: " + document.cookie); // Leak if not secure.
+  document.cookie = "test=leak me";
+  logOutput("Cookie leak: " + document.cookie);
 }
 
-// New Test 7: Geolocation (location vauln)
 function testGeolocation() {
   logOutput("Running Geolocation probe...");
   navigator.geolocation.getCurrentPosition(function(pos) {
-    logOutput("Location leak: " + pos.coords.latitude + ", " + pos.coords.longitude); // Leak if allowed.
+    logOutput("Location leak: " + pos.coords.latitude + ", " + pos.coords.longitude);
   }, function(err) {
-    logOutput("Geolocation error—possible vauln");
+    logOutput("Geolocation error—possible vuln");
   });
 }
 
-// New Test 8: Camera Access (media vauln)
 function testCameraAccess() {
   logOutput("Running Camera probe...");
   navigator.mediaDevices.getUserMedia({video: true}).then(function(stream) {
-    logOutput("Camera access OK—media vauln");
+    logOutput("Camera access OK—media vuln");
   }).catch(function(err) {
-    logOutput("Camera error—possible vauln");
+    logOutput("Camera error—possible vuln");
   });
 }
 
-// New Test 9: Notification Spam (DoS alert vauln)
 function testNotificationSpam() {
   logOutput("Running Notification spam...");
   Notification.requestPermission().then(function(perm) {
     if (perm === "granted") {
       while (true) {
-        new Notification("Spam vauln"); // Spam notifications—DoS alert flood.
+        new Notification("Spam vuln");
       }
     } else {
-      logOutput("Notification denied—vauln block");
+      logOutput("Notification denied—vuln block");
     }
   });
 }
 
-// New Test 10: Open File Browser (probe vauln)
 function openFileBrowser() {
   logOutput("Trying to open file browser...");
   let input = document.createElement('input');
   input.type = 'file';
-  input.click(); // Try to open file browser—probe sandbox vauln.
+  input.click();
   input.onchange = function(e) {
-    logOutput("File selected: " + e.target.files[0].name); // Leak if allowed.
+    logOutput("File selected: " + e.target.files[0].name);
   };
 }
 </script>
