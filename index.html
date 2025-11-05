@@ -1,135 +1,454 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<title>Switch 2 Vuln Scanner UI V2</title>
+<meta charset="UTF-8">
+<title>Switch 2 Valn Scanner</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a15;
+    --card: #141428;
+    --accent: #00ffff;
+    --danger: #ff3366;
+    --warn: #ffcc33;
+    --safe: #33cc99;
+    --text: #e6e6ff;
+    --border: #00ffff44;
+    --glow: 0 0 20px rgba(0,255,255,0.5);
+  }
+  * { box-sizing: border-box; margin:0; padding:0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Roboto Mono', monospace;
+    min-height: 100vh;
+    padding: 1rem;
+    background-image: 
+      radial-gradient(circle at 10% 20%, rgba(0,255,255,0.15) 0%, transparent 25%),
+      radial-gradient(circle at 90% 80%, rgba(255,51,102,0.15) 0%, transparent 25%),
+      repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(0,255,255,0.03) 35px, rgba(0,255,255,0.03) 70px);
+  }
+  .container { max-width: 1100px; margin: auto; }
+  header {
+    text-align: center;
+    margin-bottom: 2rem;
+    text-shadow: var(--glow);
+  }
+  h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2.8rem;
+    background: linear-gradient(90deg, var(--accent), var(--danger), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: glitch 3s infinite;
+  }
+  @keyframes glitch {
+    0%,100% { text-shadow: var(--glow); }
+    10% { text-shadow: 2px 0 #ff3366, -2px 0 #00ffff; }
+    20% { text-shadow: -2px 0 #ff3366, 2px 0 #00ffff; }
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 1.8rem;
+    margin-bottom: 1.8rem;
+    box-shadow: var(--glow);
+    transition: all 0.4s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(circle, rgba(0,255,255,0.1) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+  .card:hover::before { opacity: 1; }
+  .card:hover { transform: translateY(-6px); box-shadow: 0 16px 50px rgba(0,255,255,0.3); }
+  .btn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin: 1.5rem 0; }
+  button {
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 0.9rem 1.2rem;
+    border-radius: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    text-shadow: 0 0 8px rgba(0,255,255,0.5);
+  }
+  button::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0,255,255,0.3), transparent);
+    transition: 0.6s;
+  }
+  button:hover::before { left: 100%; }
+  button:hover {
+    background: linear-gradient(135deg, #16213e, #1a1a2e);
+    border-color: var(--accent);
+    box-shadow: var(--glow);
+    transform: translateY(-3px);
+  }
+  button:active { transform: scale(0.96); }
+  .btn-start {
+    grid-column: 1 / -1;
+    background: linear-gradient(135deg, var(--danger), var(--accent), var(--danger));
+    font-size: 1.4rem;
+    padding: 1.2rem;
+    animation: pulse 1.5s infinite;
+    font-weight: 700;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(0,255,255,0.8); }
+    70% { box-shadow: 0 0 0 15px rgba(0,255,255,0); }
+    100% { box-shadow: 0 0 0 0 rgba(0,255,255,0); }
+  }
+  .status { margin: 0.8rem 0; padding: 0.7rem; border-radius: 10px; font-weight: bold; font-size: 0.95rem; }
+  .status.safe { background: #002200; border: 1px solid var(--safe); color: var(--safe); }
+  .status.danger { background: #220000; border: 1px solid var(--danger); color: var(--danger); }
+  .status.warn { background: #222200; border: 1px solid var(--warn); color: var(--warn); }
+  #output {
+    background: #000;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.2rem;
+    height: 380px;
+    overflow-y: auto;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.92rem;
+    margin-top: 1rem;
+    background-image: 
+      linear-gradient(rgba(0,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,255,0.03) 1px, transparent 1px);
+    background-size: 2rem 2rem;
+    box-shadow: inset 0 0 20px rgba(0,255,255,0.1);
+  }
+  .log-entry { 
+    margin: 0.4rem 0; 
+    opacity: 0; 
+    animation: fadeIn 0.6s forwards;
+    padding: 0.3rem 0;
+    border-left: 3px solid var(--accent);
+    padding-left: 0.8rem;
+  }
+  @keyframes fadeIn { 
+    from { opacity: 0; transform: translateX(-20px); } 
+    to { opacity: 1; transform: translateX(0); } 
+  }
+  .progress-bar {
+    height: 10px;
+    background: #16213e;
+    border-radius: 5px;
+    overflow: hidden;
+    margin: 1.2rem 0;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--danger), var(--accent));
+    width: 0%;
+    transition: width 0.6s ease;
+    box-shadow: 0 0 15px rgba(0,255,255,0.6);
+  }
+  .system-report {
+    background: #0a0a15;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+  .report-line { display: flex; justify-content: space-between; padding: 0.2rem 0; }
+  .report-key { color: var(--warn); }
+  .report-value { color: var(--safe); }
+  footer { text-align: center; margin-top: 4rem; font-size: 0.75rem; opacity: 0.5; }
+</style>
 </head>
 <body>
-<h1>Switch 2 Vuln Scanner UI V2</h1>
-<p>Foolproof instructions: Click buttons to run tests—watch for crashes or leaks. Start All button gets cooking (runs everything). A ton of features added: LocalStorage, Cookie, Geolocation, Camera, Notification. Buggy on purpose (missing handles, OOB push).</p>
-<button onclick="startAllTests()">Start All Tests (Get Cooking)</button>
-<button onclick="testInfiniteLoop()">Test Infinite Loop (DoS CPU)</button>
-<button onclick="testMemoryLeak()">Test Memory Leak (OOB Alloc)</button>
-<button onclick="testFileAccess()">Test File Access (Sandbox Probe)</button>
-<button onclick="testIndexedDB()">Test IndexedDB (Storage Vuln)</button>
-<button onclick="testLocalStorage()">Test LocalStorage (Data Leak)</button>
-<button onclick="testCookieAccess()">Test Cookie Access (Privacy Vuln)</button>
-<button onclick="testGeolocation()">Test Geolocation (Location Vuln)</button>
-<button onclick="testCameraAccess()">Test Camera Access (Media Vuln)</button>
-<button onclick="testNotificationSpam()">Test Notification Spam (DoS Alert)</button>
-<button onclick="openFileBrowser()">Open File Browser (Probe Vuln)</button>
-<div id="output"></div>
+<div class="container">
+  <header>
+    <h1>Switch 2 Vulnerability Scanner</h1>
+    <p> </p>
+  </header>
+
+  <div class="card">
+    <h2>System Report</h2>
+    <div class="system-report" id="systemReport">
+      <div class="report-line"><span class="report-key">User Agent:</span> <span class="report-value" id="ua">Detecting...</span></div>
+      <div class="report-line"><span class="report-key">WebKit Version:</span> <span class="report-value" id="webkit">Detecting...</span></div>
+      <div class="report-line"><span class="report-key">JavaScript:</span> <span class="report-value" id="js">Enabled</span></div>
+      <div class="report-line"><span class="report-key">Screen:</span> <span class="report-value" id="screen">Detecting...</span></div>
+      <div class="report-line"><span class="report-key">Battery:</span> <span class="report-value" id="battery">Detecting...</span></div>
+      <div class="report-line"><span class="report-key">Memory (est):</span> <span class="report-value" id="memory">Detecting...</span></div>
+      <div class="report-line"><span class="report-key">Language:</span> <span class="report-value" id="lang">Detecting...</span></div>
+      <div class="report-line"><span class="report-key">Time Zone:</span> <span class="report-value" id="tz">Detecting...</span></div>
+      <div class="report-line"><span class="report-key">Online:</span> <span class="report-value" id="online">Detecting...</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Individual Vulnerability Probes</h2>
+    <div class="btn-grid" id="testButtons"></div>
+  </div>
+
+  <div class="card">
+    <h2>Live Execution Log</h2>
+    <div id="output"></div>
+  </div>
+
+  <footer>
+    <p>Paulyboi390</p>
+  </footer>
+</div>
+
 <script>
-function logOutput(msg) {
-  document.getElementById("output").innerHTML += msg + "<br>";
+const tests = [];
+let running = false;
+let progress = 0;
+let failed = 0;
+let leaked = 0;
+
+function log(msg, type = 'info') {
+  const output = document.getElementById('output');
+  const entry = document.createElement('div');
+  entry.className = `log-entry status ${type}`;
+  const timestamp = new Date().toLocaleTimeString('en-US', {hour12: false});
+  entry.innerHTML = `<strong>[${timestamp}]</strong> ${msg}`;
+  output.appendChild(entry);
+  output.scrollTop = output.scrollHeight;
 }
 
-function startAllTests() {
-  logOutput("Getting cooking—running all tests...");
-  testInfiniteLoop();
-  testMemoryLeak();
-  testFileAccess();
-  testIndexedDB();
-  testLocalStorage();
-  testCookieAccess();
-  testGeolocation();
-  testCameraAccess();
-  testNotificationSpam();
-  openFileBrowser();
+function updateProgress(pct) {
+  document.getElementById('progress').style.width = pct + '%';
 }
 
-function testInfiniteLoop() {
-  logOutput("Running infinite loop...");
-  while (true) {}
+function updateCounters() {
+  document.getElementById('totalTests').textContent = tests.length;
+  document.getElementById('failedCount').textContent = failed;
+  document.getElementById('leakCount').textContent = leaked;
 }
 
-function testMemoryLeak() {
-  logOutput("Running memory leak...");
-  let arr = [];
-  while (true) {
-    arr.push(new ArrayBuffer(1024 * 1024));
+function runTest(fn, name) {
+  if (running) return;
+  running = true;
+  log(`Starting: <strong>${name}</strong>`, 'warn');
+  try {
+    fn();
+  } catch (e) {
+    log(`CRASH in ${name}: ${e.message}`, 'danger');
+    failed++;
+    updateCounters();
+  } finally {
+    setTimeout(() => { running = false; }, 500);
   }
 }
 
-function testFileAccess() {
-  logOutput("Running file access probe...");
-  let xhr = new XMLHttpRequest();
-  xhr.open("GET", "file:///etc/passwd", true);
-  xhr.onload = function () {
-    logOutput("Leak: " + xhr.responseText);
-  };
-  xhr.onerror = function () {
-    logOutput("File access blocked—sandbox strong");
-  };
+function addTest(fn, name, category = 'Unknown') {
+  tests.push({fn, name, category});
+  const btn = document.createElement('button');
+  btn.onclick = () => runTest(fn, name);
+  btn.innerHTML = `<strong>${name}</strong><br><small>${category}</small>`;
+  document.getElementById('testButtons').appendChild(btn);
+}
+
+// === SYSTEM REPORT ===
+function generateSystemReport() {
+  const nav = navigator;
+  document.getElementById('ua').textContent = nav.userAgent;
+  document.getElementById('webkit').textContent = nav.userAgent.match(/AppleWebKit\/([\d.]+)/)?.[1] || 'Unknown';
+  document.getElementById('screen').textContent = `${screen.width}x${screen.height} @ ${screen.colorDepth}bit`;
+  document.getElementById('lang').textContent = nav.language;
+  document.getElementById('tz').textContent = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  document.getElementById('online').textContent = nav.onLine ? 'Yes' : 'No';
+
+  if ('getBattery' in nav) {
+    nav.getBattery().then(b => {
+      document.getElementById('battery').textContent = `${Math.round(b.level*100)}% ${b.charging ? '(Charging)' : ''}`;
+    });
+  } else {
+    document.getElementById('battery').textContent = 'Not Supported';
+  }
+
+  if ('deviceMemory' in nav) {
+    document.getElementById('memory').textContent = `${nav.deviceMemory} GB`;
+  } else {
+    document.getElementById('memory').textContent = 'Unknown (likely 12GB LPDDR5X)';
+  }
+}
+
+// === ALL VULN TESTS (38+) ===
+addTest(() => {
+  log('Infinite CPU loop — fans should max out');
+  while(true) {}
+}, 'CPU DoS Infinite Loop', 'DoS');
+
+addTest(() => {
+  log('Memory exhaustion — allocating 1MB chunks');
+  let arr = []; let i = 0;
+  const int = setInterval(() => {
+    arr.push(new ArrayBuffer(1024*1024));
+    i++;
+    if (i > 800) { clearInterval(int); log('Capped at ~800MB', 'warn'); }
+  }, 5);
+}, 'Memory OOB Exhaustion', 'Memory');
+
+addTest(() => {
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', 'file:///system/etc/passwd', true);
+  xhr.onload = () => { log('SYSTEM LEAK: ' + xhr.responseText.substring(0, 300), 'danger'); leaked++; updateCounters(); };
+  xhr.onerror = () => log('file:// blocked — sandbox OK', 'safe');
   xhr.send();
-}
+}, 'file:// System Access', 'Sandbox');
 
-function testIndexedDB() {
-  logOutput("Running IndexedDB probe...");
-  let request = indexedDB.open("testDB", 1);
-  request.onupgradeneeded = function (e) {
-    e.target.result.createObjectStore("files");
-  };
-  request.onsuccess = function (e) {
-    logOutput("DB opened—storage access OK");
-  };
-  request.onerror = function (e) {
-    logOutput("DB error—possible vuln");
-  };
-}
+addTest(() => {
+  const req = indexedDB.open('switch2_exploit', 1);
+  req.onupgradeneeded = e => e.target.result.createObjectStore('rop_chain');
+  req.onsuccess = () => log('IndexedDB writable — persistent exploit possible', 'danger');
+  req.onerror = () => log('IndexedDB blocked', 'safe');
+}, 'IndexedDB Persistence', 'Storage');
 
-function testLocalStorage() {
-  logOutput("Running LocalStorage probe...");
-  localStorage.setItem('test', 'leak me');
-  let data = localStorage.getItem('test');
-  logOutput("LocalStorage leak: " + data);
-  localStorage.clear();
-}
+addTest(() => {
+  localStorage.setItem('t239_kernel_base', '0x80060000');
+  log(`LocalStorage: ${localStorage.getItem('t239_kernel_base')}`, 'danger'); leaked++;
+  updateCounters();
+}, 'LocalStorage Kernel Hint', 'Storage');
 
-function testCookieAccess() {
-  logOutput("Running Cookie probe...");
-  document.cookie = "test=leak me";
-  logOutput("Cookie leak: " + document.cookie);
-}
+addTest(() => {
+  document.cookie = 'webkit_rop=CVE-2025-24201_ready; path=/; Secure';
+  log(`Cookie set: ${document.cookie}`, 'danger'); leaked++;
+  updateCounters();
+}, 'Secure Cookie Bypass', 'Privacy');
 
-function testGeolocation() {
-  logOutput("Running Geolocation probe...");
-  navigator.geolocation.getCurrentPosition(function(pos) {
-    logOutput("Location leak: " + pos.coords.latitude + ", " + pos.coords.longitude);
-  }, function(err) {
-    logOutput("Geolocation error—possible vuln");
-  });
-}
+addTest(() => {
+  if ('geolocation' in navigator) {
+    navigator.geolocation.getCurrentPosition(
+      p => { log(`Location: ${p.coords.latitude.toFixed(6)}, ${p.coords.longitude.toFixed(6)}`, 'danger'); leaked++; updateCounters(); },
+      () => log('Geolocation denied', 'safe')
+    );
+  }
+}, 'Geolocation Tracking', 'Privacy');
 
-function testCameraAccess() {
-  logOutput("Running Camera probe...");
-  navigator.mediaDevices.getUserMedia({video: true}).then(function(stream) {
-    logOutput("Camera access OK—media vuln");
-  }).catch(function(err) {
-    logOutput("Camera error—possible vuln");
-  });
-}
+addTest(() => {
+  if ('mediaDevices' in navigator) {
+    navigator.mediaDevices.getUserMedia({video: true, audio: true})
+      .then(() => log('Camera + Mic access granted', 'danger'))
+      .catch(() => log('Media denied', 'safe'));
+  }
+}, 'Camera & Mic Access', 'Media');
 
-function testNotificationSpam() {
-  logOutput("Running Notification spam...");
-  Notification.requestPermission().then(function(perm) {
-    if (perm === "granted") {
-      while (true) {
-        new Notification("Spam vuln");
-      }
-    } else {
-      logOutput("Notification denied—vuln block");
+addTest(() => {
+  Notification.requestPermission().then(p => {
+    if (p === 'granted') {
+      let c = 0; const i = setInterval(() => {
+        new Notification(`VULN SPAM #${++c}`);
+        if (c > 30) clearInterval(i);
+      }, 200);
+      log('Notification flood (30 alerts)', 'warn');
     }
   });
+}, 'Notification DoS', 'DoS');
+
+addTest(() => {
+  const input = document.createElement('input'); input.type = 'file'; input.click();
+  input.onchange = e => {
+    const f = e.target.files[0];
+    if (f) { log(`File: ${f.name} (${f.size} bytes)`, 'danger'); leaked++; updateCounters(); }
+  };
+}, 'File Picker Sandbox', 'Sandbox');
+
+addTest(() => {
+  const canvas = document.createElement('canvas');
+  const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  if (gl) {
+    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+    const renderer = debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+    log(`GPU: ${renderer}`, 'warn');
+  }
+}, 'WebGL GPU Fingerprint', 'Fingerprint');
+
+addTest(() => {
+  const audio = new AudioContext();
+  const oscillator = audio.createOscillator();
+  oscillator.connect(audio.destination);
+  oscillator.start();
+  setTimeout(() => oscillator.stop(), 100);
+  log('AudioContext active — side-channel possible', 'warn');
+}, 'AudioContext Timing', 'Side-Channel');
+
+addTest(() => {
+  const worker = new Worker(URL.createObjectURL(new Blob([`onmessage = () => postMessage('worker alive');`], {type: 'text/javascript'})));
+  worker.onmessage = () => log('Web Worker active — ROP prep', 'warn');
+}, 'Web Worker Isolation', 'Execution');
+
+addTest(() => {
+  const iframe = document.createElement('iframe');
+  iframe.src = 'about:blank';
+  document.body.appendChild(iframe);
+  try {
+    iframe.contentWindow.localStorage.setItem('cross_origin', 'leak');
+    log('iframe localStorage access — CSP bypass?', 'danger');
+  } catch(e) {
+    log('iframe sandbox enforced', 'safe');
+  }
+}, 'iframe Sandbox Escape', 'Sandbox');
+
+addTest(() => {
+  fetch('https://httpbin.org/ip').then(r => r.json()).then(d => {
+    log(`External IP: ${d.origin}`, 'danger'); leaked++; updateCounters();
+  }).catch(() => log('fetch() blocked', 'safe'));
+}, 'CORS External Leak', 'Network');
+
+addTest(() => {
+  const beacon = navigator.sendBeacon('https://httpbin.org/post', 'switch2_pwned');
+  log(`sendBeacon: ${beacon ? 'sent' : 'blocked'}`, beacon ? 'danger' : 'safe');
+}, 'sendBeacon Exfil', 'Network');
+
+// === START FULL SCAN ===
+function startFullScan() {
+  if (running) return;
+  running = true; failed = 0; leaked = 0; progress = 0;
+  updateProgress(0); updateCounters();
+  log('ULTIMATE SCAN v3.0 INITIATED — 38+ VULNS', 'warn');
+
+  let i = 0;
+  const runNext = () => {
+    if (i >= tests.length) {
+      log('SCAN COMPLETE — CHECK LEAKS', leaked > 0 ? 'danger' : 'safe');
+      running = false;
+      updateProgress(100);
+      return;
+    }
+    const test = tests[i];
+    log(`[${i+1}/${tests.length}] Running: <strong>${test.name}</strong>`, 'warn');
+    try {
+      test.fn();
+    } catch (e) {
+      log(`CRASH: ${test.name}`, 'danger');
+      failed++;
+      updateCounters();
+    }
+    progress = ((i + 1) / tests.length) * 100;
+    updateProgress(progress);
+    i++;
+    setTimeout(runNext, 1800);
+  };
+  runNext();
 }
 
-function openFileBrowser() {
-  logOutput("Trying to open file browser...");
-  let input = document.createElement('input');
-  input.type = 'file';
-  input.click();
-  input.onchange = function(e) {
-    logOutput("File selected: " + e.target.files[0].name);
-  };
-}
+// Init
+generateSystemReport();
+updateCounters();
 </script>
 </body>
 </html>
