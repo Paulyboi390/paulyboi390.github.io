@@ -1,0 +1,64 @@
+<html>
+<head>
+<title>Switch 2 Vuln Scanner UI</title>
+</head>
+<body>
+<h1>Switch 2 Vuln Scanner UI</h1>
+<p>Click buttons to run tests—watch for crashes or leaks. A little buggy on purpose (missing handles, OOB push).</p>
+<button onclick="testInfiniteLoop()">Test Infinite Loop (DoS CPU)</button>
+<button onclick="testMemoryLeak()">Test Memory Leak (OOB Alloc)</button>
+<button onclick="testFileAccess()">Test File Access (Sandbox Probe)</button>
+<button onclick="testIndexedDB()">Test IndexedDB (Storage Vuln)</button>
+<div id="output"></div>
+<script>
+// Output function (buggy: No check if div exists)
+function logOutput(msg) {
+  document.getElementById("output").innerHTML += msg + "<br>";
+}
+
+// Test 1: Infinite Loop to Crash CPU (fans pump)
+function testInfiniteLoop() {
+  logOutput("Running infinite loop...");
+  while (true) {} // Infinite CPU spin—browser freeze, kernel panic if escalates.
+}
+
+// Test 2: Memory Leak via Array Fill (OOB allocation probe)
+function testMemoryLeak() {
+  logOutput("Running memory leak...");
+  let arr = [];
+  while (true) {
+    arr.push(new ArrayBuffer(1024 * 1024)); // 1MB chunks—exhaust memory, probe WebKit leak to kernel OOB.
+  }
+}
+
+// Test 3: Local File Access Attempt (sandbox block, probe vauln)
+function testFileAccess() {
+  logOutput("Running file access probe...");
+  let xhr = new XMLHttpRequest();
+  xhr.open("GET", "file:///etc/passwd", true); // Attempt browser files—blocked, but probe for sandbox vauln.
+  xhr.onload = function () {
+    logOutput("Leak: " + xhr.responseText); // If leaks, log (buggy: No escape, XSS vauln if output).
+  };
+  xhr.onerror = function () {
+    logOutput("File access blocked—sandbox strong");
+  };
+  xhr.send();
+}
+
+// Test 4: IndexedDB Access (browser "files" simulation, storage vauln)
+function testIndexedDB() {
+  logOutput("Running IndexedDB probe...");
+  let request = indexedDB.open("testDB", 1);
+  request.onupgradeneeded = function (e) {
+    e.target.result.createObjectStore("files"); // Probe storage—leak or corrupt browser files.
+  };
+  request.onsuccess = function (e) {
+    logOutput("DB opened—storage access OK");
+  };
+  request.onerror = function (e) {
+    logOutput("DB error—possible vauln");
+  };
+}
+</script>
+</body>
+</html>
