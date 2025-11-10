@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAM Bomb Tester - Ultimate Crash Edition</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { text-align: center; }
+        #controls { margin-bottom: 20px; }
+        #methods { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+        .method { border: 1px solid #ccc; padding: 10px; border-radius: 5px; }
+        .method label { display: block; }
+        #log { border: 1px solid #ddd; padding: 10px; height: 300px; overflow-y: auto; background: #f8f8f8; }
+        button { margin-right: 10px; padding: 8px 16px; cursor: pointer; }
+        input[type="number"] { width: 60px; margin-left: 5px; }
+    </style>
+    <script>
+        // WARNING: This script is designed to consume large amounts of memory or freeze/crash the browser for testing purposes.
+        // Running this may crash your browser tab or entire browser. Use at your own risk.
+        // Enhanced with methods from web research: exponential strings, history pushState, infinite reload, ReDoS, recursive workers.
+
+        const methods = [
+            { id: 'method1', name: 'Large array of numbers', func: (params) => new Array(params.size || 1e8).fill(Math.random()), params: [{name: 'size', default: 1e8}] },
+            { id: 'method2', name: 'Massive string concatenation', func: (params) => 'a'.repeat(params.size || 1e9), params: [{name: 'size', default: 1e9}] },
+            { id: 'method3', name: 'Create many DOM elements', func: (params) => {
+                const count = params.count || 1e6;
+                for (let i = 0; i < count; i++) {
+                    let div = document.createElement('div');
+                    div.textContent = 'Filler ' + i;
+                    document.body.appendChild(div);
+                }
+            }, params: [{name: 'count', default: 1e6}] },
+            { id: 'method4', name: 'Large data URL images', func: (params) => {
+                const width = params.width || 10000;
+                const height = params.height || 10000;
+                let canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                let ctx = canvas.getContext('2d');
+                ctx.fillStyle = 'red';
+                ctx.fillRect(0, 0, width, height);
+                let img = new Image();
+                img.src = canvas.toDataURL();
+                document.body.appendChild(img);
+            }, params: [{name: 'width', default: 10000}, {name: 'height', default: 10000}] },
+            { id: 'method5', name: 'Large TypedArray', func: (params) => {
+                const size = params.size || 1e8;
+                let typedArr = new Float64Array(size);
+                for (let i = 0; i < typedArr.length; i++) {
+                    typedArr[i] = Math.random();
+                }
+            }, params: [{name: 'size', default: 1e8}] },
+            { id: 'method6', name: 'Spawn web workers', func: (params) => {
+                const count = params.count || 10;
+                for (let i = 0; i < count; i++) {
+                    let worker = new Worker(URL.createObjectURL(new Blob([`
+                        let arr = [];
+                        while(true) { arr.push(new Array(1e7).fill(Math.random())); }
+                    `])));
+                }
+            }, params: [{name: 'count', default: 10}] },
+            { id: 'method7', name: 'Recursive object creation', func: (params) => {
+                const depth = params.depth || 1000;
+                function recurse(d) {
+                    if (d > 0) {
+                        let obj = { next: recurse(d - 1) };
+                        obj.data = new Array(1e6).fill(Math.random());
+                        return obj;
+                    }
+                    return {};
+                }
+                recurse(depth);
+            }, params: [{name: 'depth', default: 1000}] },
+            { id: 'method8', name: 'Audio buffers', func: (params) => {
+                const count = params.count || 100;
+                let audioCtx = new AudioContext();
+                for (let i = 0; i < count; i++) {
+                    let buffer = audioCtx.createBuffer(2, 44100 * 600, 44100);
+                    for (let channel = 0; channel < 2; channel++) {
+                        let data = buffer.getChannelData(channel);
+                        for (let j = 0; j < data.length; j++) {
+                            data[j] = Math.random();
+                        }
+                    }
+                }
+            }, params: [{name: 'count', default: 100}] },
+            { id: 'method9', name: 'IndexedDB large storage', func: async (params) => {
+                return new Promise((resolve, reject) => {
+                    const size = params.size || 1e9;
+                    let dbRequest = indexedDB.open('ramBombDB', 1);
+                    dbRequest.onupgradeneeded = () => {
+                        let db = dbRequest.result;
+                        db.createObjectStore('store');
+                    };
+                    dbRequest.onsuccess = () => {
+                        let db = dbRequest.result;
+                        let tx = db.transaction('store', 'readwrite');
+                        let store = tx.objectStore('store');
+                        let largeData = new ArrayBuffer(size);
+                        store.put(largeData, 'key');
+                        tx.oncomplete = resolve;
+                        tx.onerror = reject;
+                    };
+                    dbRequest.onerror = reject;
+                });
+            }, params: [{name: 'size', default: 1e9}] },
+            { id: 'method10', name: 'WebGL large textures', func: (params) => {
+                const width = params.width || 8192;
+                const height = params.height || 8192;
+                let glCanvas = document.createElement('canvas');
+                glCanvas.width = width;
+                glCanvas.height = height;
+                let gl = glCanvas.getContext('webgl');
+                let texture = gl.createTexture();
+                gl.bindTexture(gl.TEXTURE_2D, texture);
+                let data = new Uint8Array(width * height * 4);
+                for (let i = 0; i < data.length; i++) data[i] = Math.floor(Math.random() * 256);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+            }, params: [{name: 'width', default: 8192}, {name: 'height', default: 8192}] },
+            { id: 'method11', name: 'Infinite allocator (crash mode)', func: (params) => {
+                let allocs = [];
+                while (true) {
+                    allocs.push(new Array(1e7).fill(Math.random()));
+                }
+            }, params: [] },
+            { id: 'method12', name: 'Exponential string growth', func: (params) => {
+                let txt = "a";
+                while (true) {
+                    txt += txt;  // Doubles size each time, exponential growth
+                }
+            }, params: [] },
+            { id: 'method13', name: 'History pushState bomb', func: (params) => {
+                let total = "";
+                const max = params.max || 1e7;
+                for (let i = 0; i < max; i++) {
+                    total += i.toString();
+                    history.pushState(0, 0, total);
+                }
+            }, params: [{name: 'max', default: 1e7}] },
+            { id: 'method14', name: 'Infinite reload loop', func: (params) => {
+                onbeforeunload = function() { localStorage.x = 1 };
+                setTimeout(function() {
+                    while (true) location.reload(true);
+                }, params.delay || 1000);
+            }, params: [{name: 'delay', default: 1000}] },
+            { id: 'method15', name: 'ReDoS (Regex DoS)', func: (params) => {
+                const regex = /^((a+)+)b$/;
+                const str = 'a'.repeat(params.length || 1e5) + 'c';
+                regex.test(str);  // This will hang due to catastrophic backtracking
+            }, params: [{name: 'length', default: 1e5}] },
+            { id: 'method16', name: 'Recursive web workers', func: (params) => {
+                const count = params.count || 100;
+                function spawnWorker() {
+                    let worker = new Worker(URL.createObjectURL(new Blob(["while(true) { new Worker(URL.createObjectURL(new Blob([workerCode]))); }"])));
+                }
+                for (let i = 0; i < count; i++) {
+                    spawnWorker();
+                }
+            }, params: [{name: 'count', default: 100}] },
+            { id: 'method17', name: 'Massive array spread', func: (params) => {
+                [...Array(2**31 - 1)];
+            }, params: [] },
+            { id: 'method18', name: 'Infinite console log loop', func: (params) => {
+                for (let i = 5; i > 3; i = i + 1) {
+                    console.log(i);
+                }
+            }, params: [] },
+            { id: 'method19', name: 'DOM and popup spam', func: (params) => {
+                let txt = "";
+                while (true) {
+                    txt += "crash".repeat(99);
+                    let x = document.createElement("div");
+                    x.innerText = txt;
+                    document.body.appendChild(x);
+                    console.log(txt);
+                    open('about:blank', Math.random().toString(), "width=1,height=1");
+                }
+            }, params: [] },
+            { id: 'method20', name: 'UUID heap filler', func: async (params) => {
+                const targetMB = params.target || 4000;
+                const heap = [];
+                let currentMB = 0;
+                while (currentMB < targetMB) {
+                    let str = '';
+                    while (str.length < 1024 * 1024) {
+                        str += Math.random().toString(36).substring(2) + '-';  // Simulate UUID
+                    }
+                    heap.push(str);
+                    currentMB++;
+                }
+            }, params: [{name: 'target', default: 4000}] }
+        ];
+
+        function logMessage(message) {
+            const logDiv = document.getElementById('log');
+            const p = document.createElement('p');
+            p.textContent = new Date().toLocaleTimeString() + ': ' + message;
+            logDiv.appendChild(p);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        async function runMethod(method) {
+            const checkbox = document.getElementById(method.id);
+            if (!checkbox.checked) return;
+            
+            let params = {};
+            if (method.params) {
+                method.params.forEach(p => {
+                    const input = document.getElementById(`${method.id}-${p.name}`);
+                    params[p.name] = input ? parseFloat(input.value) : p.default;
+                });
+            }
+            
+            logMessage(`Starting ${method.name} with params: ${JSON.stringify(params)}...`);
+            try {
+                const result = method.func(params);
+                if (result instanceof Promise) await result;
+                logMessage(`${method.name} succeeded`);
+            } catch (e) {
+                logMessage(`${method.name} failed: ${e.message}`);
+            }
+        }
+
+        async function runSelected() {
+            if (!confirm('This will attempt extreme methods to crash the browser tab or entire browser. It may freeze your system temporarily. Proceed at your own risk?')) return;
+            for (const method of methods) {
+                await runMethod(method);
+            }
+        }
+
+        function selectAll(checked) {
+            methods.forEach(m => document.getElementById(m.id).checked = checked);
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        window.onload = function() {
+            const methodsDiv = document.getElementById('methods');
+            methods.forEach(method => {
+                const div = document.createElement('div');
+                div.className = 'method';
+                let html = `<input type="checkbox" id="${method.id}" checked>
+                            <label for="${method.id}">${method.name}</label>`;
+                if (method.params) {
+                    method.params.forEach(p => {
+                        html += `<br><label>${p.name}: <input type="number" id="${method.id}-${p.name}" value="${p.default}" step="any"></label>`;
+                    });
+                }
+                div.innerHTML = html;
+                methodsDiv.appendChild(div);
+            });
+        };
+    </script>
+</head>
+<body>
+    <h1>RAM Bomb Tester - Ultimate Crash Edition</h1>
+    <p>Based on web research<render_inline_citation><argument name="citation_id">0</argument</render_inline_citation><render_inline_citation><argument name="citation_id">3</argument</render_inline_citation><render_inline_citation><argument name="citation_id">5</argument</render_inline_citation><render_inline_citation><argument name="citation_id">6</argument</render_inline_citation><render_inline_citation><argument name="citation_id">1</argument</render_inline_citation><render_inline_citation><argument name="citation_id">2</argument</render_inline_citation>, this version includes proven crash methods like exponential string doubling (fast OOM), history.pushState overload (browser history bloat), infinite reload (freezes via constant refreshing), ReDoS (hangs on bad regex), recursive workers (spawns infinitely), massive array spreads, DOM/popup spam, and UUID-style heap filler. To crash: Run infinite methods alone, increase params (e.g., history max to 1e8, ReDoS length to 1e6), monitor in dev tools (F12 > Memory/Performance). Browsers limit per-tab RAM (e.g., Chrome ~4-8GB), so it may "Aw, Snap!" the tab instead of full crash. Test in incognito or separate profile. Learn by seeing how each exploits JS engine limits.</p>
+    <div id="controls">
+        <button onclick="runSelected()">Run Selected Methods</button>
+        <button onclick="selectAll(true)">Select All</button>
+        <button onclick="selectAll(false)">Deselect All</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+    <div id="methods"></div>
+    <h2>Log</h2>
+    <div id="log"></div>
+</body>
+</html>
