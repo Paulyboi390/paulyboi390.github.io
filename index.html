@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ChromeOS Utility Toolkit</title>
+
+<style>
+body{
+font-family:Arial, sans-serif;
+background:#0f0f0f;
+color:white;
+text-align:center;
+padding:40px;
+}
+
+.container{
+max-width:800px;
+margin:auto;
+background:#1b1b1b;
+padding:30px;
+border-radius:10px;
+}
+
+h1{
+color:#00ff88;
+}
+
+.disclaimer{
+background:#222;
+padding:20px;
+border-radius:8px;
+text-align:left;
+margin-bottom:25px;
+}
+
+button{
+background:#00c853;
+border:none;
+padding:15px 30px;
+font-size:18px;
+border-radius:8px;
+cursor:pointer;
+color:white;
+}
+
+button:hover{
+background:#00a844;
+}
+
+button:disabled{
+background:#555;
+cursor:not-allowed;
+}
+</style>
+
+<script>
+
+function toggleDownload(){
+const box = document.getElementById("agree");
+const btn = document.getElementById("downloadBtn");
+
+btn.disabled = !box.checked;
+}
+
+function downloadFile(){
+window.location.href="https://github.com/Paulyboi390/chromebook-unblocker/archive/refs/heads/main.zip";
+}
+
+</script>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Chromebook-Unblocker</h1>
+
+<div class="disclaimer">
+
+<b>DISCLAIMER:</b><br><br>
+
+Use this tool only with proper permission from the appropriate owner, administrator, or authority.  
+By using this tool, you confirm that you have received authorization to do so.
+
+The creator, developer, and distributor of this tool are not responsible for any misuse, illegal activity, damage, loss of data, or consequences that may occur from the use or misuse of this tool.
+
+Any actions taken with this tool are done entirely at the user's own risk and responsibility.
+
+By using this tool, you agree to comply with all applicable local, state, and federal laws and regulations.
+
+</div>
+
+<h2>Instructions</h2>
+
+<p>
+Click the download button below to get the ZIP archive.<br><br>
+
+Inside the ZIP, you'll find another ZIP file that is password-protected.<br><br>
+
+If you need the password to access the protected ZIP file, please reach out to me directly.<br><br>
+
+Additionally, there is a <b>README.md</b> file included which contains important information.
+</p>
+
+<br>
+
+<input type="checkbox" id="agree" onchange="toggleDownload()">
+<label for="agree">I have read and agree to the disclaimer</label>
+
+<br><br>
+
+<button id="downloadBtn" disabled onclick="downloadFile()">
+Download ZIP
+</button>
+
+</div>
+
+<!--
+Human history is the story of how small groups of hunter-gatherers gradually built the complex civilizations we know today. Around 10,000 BCE, the Agricultural Revolution allowed humans to settle and form early societies like Ancient Mesopotamia and Ancient Egypt, where writing, laws, and cities first emerged. Over centuries, powerful empires such as the Roman Empire and Mongol Empire connected vast regions through trade, conquest, and cultural exchange. The Renaissance and later the Scientific Revolution transformed Europe by encouraging art, learning, and scientific thinking, which helped lead to the Industrial Revolution, when machines, factories, and new technologies dramatically changed how people lived and worked. The 20th century was shaped by global conflicts like World War I and World War II, followed by rapid technological progress, decolonization, and globalization, setting the stage for today’s interconnected world.
+-->
+
+</body>
+</html>
