@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HackLab</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'JetBrains Mono', monospace;
+    background: #111;
+    color: #bbb;
+    padding: 2rem;
+    max-width: 700px;
+    margin: 0 auto;
+    font-size: 0.85rem;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #222;
+  }
+  .logo { color: #4ade80; font-weight: 600; }
+  .score-label { color: #444; }
+  .score-label span { color: #4ade80; }
+  nav { display: flex; gap: 1.5rem; margin-bottom: 2rem; }
+  nav button {
+    background: none; border: none; color: #444;
+    font-family: inherit; font-size: 0.82rem; cursor: pointer; padding-bottom: 2px;
+  }
+  nav button:hover { color: #bbb; }
+  nav button.active { color: #4ade80; border-bottom: 1px solid #4ade80; }
+  .page { display: none; }
+  .page.active { display: block; }
+  .prog { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; font-size: 0.75rem; color: #333; }
+  .prog-track { flex: 1; height: 2px; background: #1e1e1e; }
+  .prog-fill { height: 100%; background: #4ade80; transition: width 0.4s; }
+  .card {
+    border: 1px solid #1e1e1e; border-radius: 4px;
+    padding: 1rem 1.1rem; margin-bottom: 0.6rem; cursor: pointer; transition: border-color 0.15s;
+  }
+  .card:hover { border-color: #2e2e2e; }
+  .card.solved { border-color: #1a3d22; }
+  .card-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem; }
+  .card-name { color: #ccc; font-weight: 500; }
+  .card-right { display: flex; gap: 0.6rem; align-items: center; }
+  .tag { font-size: 0.62rem; padding: 0.1rem 0.45rem; border-radius: 2px; text-transform: uppercase; }
+  .easy   { color: #4ade80; background: #0d2016; }
+  .medium { color: #fbbf24; background: #261d09; }
+  .hard   { color: #f87171; background: #260d0d; }
+  .pts { font-size: 0.72rem; color: #333; }
+  .card-desc { font-size: 0.76rem; color: #444; line-height: 1.6; }
+  .solved-mark { font-size: 0.68rem; color: #4ade80; margin-top: 0.4rem; }
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.88);
+    display: flex; align-items: center; justify-content: center;
+    padding: 1rem; opacity: 0; pointer-events: none; transition: opacity 0.15s; z-index: 50;
+  }
+  .overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: #161616; border: 1px solid #252525; border-radius: 5px;
+    width: 100%; max-width: 600px; max-height: 88vh; overflow-y: auto;
+  }
+  .modal-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.9rem 1.1rem; border-bottom: 1px solid #1e1e1e;
+    position: sticky; top: 0; background: #161616;
+  }
+  .modal-head span { color: #ccc; font-weight: 500; }
+  .modal-head button { background: none; border: none; color: #444; font-family: inherit; font-size: 0.9rem; cursor: pointer; }
+  .modal-head button:hover { color: #bbb; }
+  .modal-body { padding: 1.1rem; }
+  .desc { font-size: 0.78rem; color: #555; line-height: 1.7; margin-bottom: 1.1rem; }
+  .desc strong { color: #888; font-weight: 500; }
+  .desc code { color: #60a5fa; }
+  .hint {
+    font-size: 0.75rem; color: #4a3e1a; border: 1px solid #2a2310;
+    border-radius: 3px; padding: 0.55rem 0.8rem; margin-bottom: 1.1rem;
+    cursor: pointer; user-select: none; line-height: 1.5;
+  }
+  .hint.open { color: #777; border-color: #252525; }
+  .hint-body { display: none; margin-top: 0.35rem; color: #555; }
+  .hint.open .hint-body { display: block; }
+  label { display: block; font-size: 0.68rem; color: #333; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem; }
+  input[type=text], input[type=password], textarea {
+    width: 100%; background: #0e0e0e; border: 1px solid #1e1e1e; border-radius: 3px;
+    padding: 0.5rem 0.7rem; color: #bbb; font-family: inherit; font-size: 0.78rem; outline: none; margin-bottom: 0.65rem;
+  }
+  textarea { resize: vertical; min-height: 60px; }
+  input:focus, textarea:focus { border-color: #2e2e2e; }
+  .btn {
+    background: none; border: 1px solid #252525; border-radius: 3px; color: #666;
+    font-family: inherit; font-size: 0.76rem; padding: 0.45rem 0.9rem; cursor: pointer; transition: all 0.12s;
+  }
+  .btn:hover { border-color: #333; color: #bbb; }
+  .btn.go { background: #4ade80; border-color: #4ade80; color: #000; font-weight: 600; }
+  .btn.go:hover { background: #65e896; }
+  .out {
+    background: #0c0c0c; border: 1px solid #1a1a1a; border-radius: 3px;
+    padding: 0.6rem 0.75rem; font-size: 0.76rem; min-height: 36px;
+    white-space: pre-wrap; word-break: break-all; color: #444; margin-top: 0.6rem;
+  }
+  .out.ok   { color: #4ade80; }
+  .out.err  { color: #f87171; }
+  .out.info { color: #60a5fa; }
+  hr { border: none; border-top: 1px solid #1a1a1a; margin: 1rem 0; }
+  .flag-row { display: flex; gap: 0.5rem; align-items: flex-end; }
+  .flag-row .f { flex: 1; }
+  .flag-row input { margin-bottom: 0; }
+  .code-block {
+    background: #0c0c0c; border: 1px solid #1a1a1a; border-radius: 3px;
+    padding: 0.6rem 0.75rem; font-size: 0.72rem; color: #444; word-break: break-all; margin-bottom: 0.65rem;
+  }
+  .table-wrap { overflow-x: auto; margin-top: 0.6rem; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.74rem; }
+  th { background: #1a1a1a; color: #555; padding: 0.4rem 0.6rem; text-align: left; border: 1px solid #222; }
+  td { padding: 0.35rem 0.6rem; border: 1px solid #1a1a1a; color: #888; }
+  .sb-row { display: flex; gap: 1rem; padding: 0.65rem 0; border-bottom: 1px solid #1a1a1a; font-size: 0.8rem; }
+  .sb-rank { color: #2a2a2a; width: 2rem; }
+  .sb-name { flex: 1; color: #555; }
+  .sb-pts  { color: #4ade80; }
+  .sb-row.you .sb-name { color: #bbb; }
+  #admin-page { max-width: 340px; }
+  .box { border: 1px solid #1e1e1e; border-radius: 5px; padding: 1.4rem; background: #141414; }
+  .box h2 { font-size: 0.88rem; color: #ccc; margin-bottom: 0.25rem; }
+  .box p  { font-size: 0.76rem; color: #333; margin-bottom: 1.1rem; }
+  #toast {
+    position: fixed; bottom: 1.5rem; right: 1.5rem; background: #4ade80; color: #000;
+    font-weight: 600; font-size: 0.76rem; padding: 0.55rem 0.9rem; border-radius: 3px;
+    opacity: 0; transform: translateY(6px); transition: all 0.2s; pointer-events: none;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+  .section-label { font-size: 0.68rem; color: #333; text-transform: uppercase; letter-spacing: 0.1em; margin: 1.5rem 0 0.75rem; }
+  .section-label:first-child { margin-top: 0; }
+  .inline-row { display: flex; gap: 0.5rem; align-items: flex-start; margin-bottom: 0.65rem; }
+  .inline-row input { flex: 1; margin-bottom: 0; }
+</style>
+</head>
+<body>
+
+<!-- VULN ch1: flag in HTML comment — FLAG{s0urc3_c0d3_n3v3r_li3s} -->
+<!-- admin credentials: admin / letmein123 -->
+
+<header>
+  <div class="logo">hacklab</div>
+  <div class="score-label">score: <span id="hdr-score">0</span> pts</div>
+</header>
+
+<nav>
+  <button class="active" onclick="goto('home',this)">challenges</button>
+  <button onclick="goto('scoreboard',this)">scoreboard</button>
+  <button onclick="goto('admin',this)">admin</button>
+</nav>
+
+<!-- HOME -->
+<div class="page active" id="home-page">
+  <div class="prog">
+    <span id="prog-txt">0 / 15 solved</span>
+    <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+  </div>
+
+  <div id="cards">
+
+    <div class="section-label">— easy</div>
+
+    <div class="card" id="c1" onclick="open_ch(1)">
+      <div class="card-row"><span class="card-name">01 — Open Secrets</span>
+        <div class="card-right"><span class="tag easy">easy</span><span class="pts">100 pts</span></div></div>
+      <div class="card-desc">Developers leave things in source code. Look at what the browser actually downloaded.</div>
+    </div>
+
+    <div class="card" id="c2" onclick="open_ch(2)">
+      <div class="card-row"><span class="card-name">02 — Cookie Monster</span>
+        <div class="card-right"><span class="tag easy">easy</span><span class="pts">100 pts</span></div></div>
+      <div class="card-desc">The server trusts cookies without verifying them. Change what it thinks you are.</div>
+    </div>
+
+    <div class="card" id="c3" onclick="open_ch(3)">
+      <div class="card-row"><span class="card-name">03 — Locked Door</span>
+        <div class="card-right"><span class="tag easy">easy</span><span class="pts">100 pts</span></div></div>
+      <div class="card-desc">An admin panel exists. The password isn't as hidden as the developer thinks.</div>
+    </div>
+
+    <div class="card" id="c4" onclick="open_ch(4)">
+      <div class="card-row"><span class="card-name">04 — Hidden in Plain Sight</span>
+        <div class="card-right"><span class="tag easy">easy</span><span class="pts">100 pts</span></div></div>
+      <div class="card-desc">Something useful is being sent in the HTTP response headers. Most people never look there.</div>
+    </div>
+
+    <div class="card" id="c5" onclick="open_ch(5)">
+      <div class="card-row"><span class="card-name">05 — robots.txt</span>
+        <div class="card-right"><span class="tag easy">easy</span><span class="pts">100 pts</span></div></div>
+      <div class="card-desc">Websites tell search engines what not to index. That list is public. What's being hidden?</div>
+    </div>
+
+    <div class="card" id="c6" onclick="open_ch(6)">
+      <div class="card-row"><span class="card-name">06 — Default Creds</span>
+        <div class="card-right"><span class="tag easy">easy</span><span class="pts">150 pts</span></div></div>
+      <div class="card-desc">A backup service was installed and never configured. It still uses factory credentials.</div>
+    </div>
+
+    <div class="section-label">— medium</div>
+
+    <div class="card" id="c7" onclick="open_ch(7)">
+      <div class="card-row"><span class="card-name">07 — Reflected XSS</span>
+        <div class="card-right"><span class="tag medium">medium</span><span class="pts">200 pts</span></div></div>
+      <div class="card-desc">The search box echoes your input back without sanitization. Make it execute JavaScript.</div>
+    </div>
+
+    <div class="card" id="c8" onclick="open_ch(8)">
+      <div class="card-row"><span class="card-name">08 — SQL Injection — Login</span>
+        <div class="card-right"><span class="tag medium">medium</span><span class="pts">200 pts</span></div></div>
+      <div class="card-desc">A login form builds its query with string concatenation. Break out of the string.</div>
+    </div>
+
+    <div class="card" id="c9" onclick="open_ch(9)">
+      <div class="card-row"><span class="card-name">09 — SQL Injection — Extract</span>
+        <div class="card-right"><span class="tag medium">medium</span><span class="pts">250 pts</span></div></div>
+      <div class="card-desc">A search query is injectable. Use it to read data from another table.</div>
+    </div>
+
+    <div class="card" id="c10" onclick="open_ch(10)">
+      <div class="card-row"><span class="card-name">10 — Trust Issues (JWT)</span>
+        <div class="card-right"><span class="tag medium">medium</span><span class="pts">250 pts</span></div></div>
+      <div class="card-desc">Your auth token is base64 JSON. The signature is never actually verified.</div>
+    </div>
+
+    <div class="card" id="c11" onclick="open_ch(11)">
+      <div class="card-row"><span class="card-name">11 — IDOR</span>
+        <div class="card-right"><span class="tag medium">medium</span><span class="pts">200 pts</span></div></div>
+      <div class="card-desc">You can view your own profile at /profile?id=1002. Other profiles exist too.</div>
+    </div>
+
+    <div class="card" id="c12" onclick="open_ch(12)">
+      <div class="card-row"><span class="card-name">12 — Stored XSS</span>
+        <div class="card-right"><span class="tag medium">medium</span><span class="pts">250 pts</span></div></div>
+      <div class="card-desc">A comment box saves and re-renders user input. Inject something that runs for everyone.</div>
+    </div>
+
+    <div class="section-label">— hard</div>
+
+    <div class="card" id="c13" onclick="open_ch(13)">
+      <div class="card-row"><span class="card-name">13 — Path Traversal</span>
+        <div class="card-right"><span class="tag hard">hard</span><span class="pts">350 pts</span></div></div>
+      <div class="card-desc">A file viewer strips ../ — but only once. Bypass the filter to read a secret file.</div>
+    </div>
+
+    <div class="card" id="c14" onclick="open_ch(14)">
+      <div class="card-row"><span class="card-name">14 — SQL Injection — Blind</span>
+        <div class="card-right"><span class="tag hard">hard</span><span class="pts">400 pts</span></div></div>
+      <div class="card-desc">The app doesn't show query results. Use true/false responses to extract data character by character.</div>
+    </div>
+
+    <div class="card" id="c15" onclick="open_ch(15)">
+      <div class="card-row"><span class="card-name">15 — Broken Access Control</span>
+        <div class="card-right"><span class="tag hard">hard</span><span class="pts">400 pts</span></div></div>
+      <div class="card-desc">An API endpoint checks your role — but only on the frontend. The backend trusts a header you can set yourself.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- SCOREBOARD -->
+<div class="page" id="scoreboard-page">
+  <div class="sb-row"><span class="sb-rank">1</span><span class="sb-name">void_runner</span><span class="sb-pts">2950</span></div>
+  <div class="sb-row"><span class="sb-rank">2</span><span class="sb-name">null_byte</span><span class="sb-pts">2400</span></div>
+  <div class="sb-row"><span class="sb-rank">3</span><span class="sb-name">s3cur3_l0l</span><span class="sb-pts">1800</span></div>
+  <div class="sb-row"><span class="sb-rank">4</span><span class="sb-name">xss_enjoyer</span><span class="sb-pts">1250</span></div>
+  <div class="sb-row"><span class="sb-rank">5</span><span class="sb-name">sqli_stan</span><span class="sb-pts">800</span></div>
+  <div class="sb-row you"><span class="sb-rank">—</span><span class="sb-name">you</span><span class="sb-pts" id="sb-score">0</span></div>
+</div>
+
+<!-- ADMIN (challenge 3) -->
+<div class="page" id="admin-page">
+  <div class="box" id="admin-login">
+    <h2>Admin Login</h2>
+    <p>Restricted area.</p>
+    <label>Username</label>
+    <input type="text" id="a-user" placeholder="username">
+    <label>Password</label>
+    <input type="password" id="a-pass" placeholder="password">
+    <button class="btn go" style="width:100%;margin-bottom:0" onclick="try_admin()">Login</button>
+    <div class="out" id="admin-out"></div>
+  </div>
+  <div class="box" id="admin-ok" style="display:none">
+    <h2 style="color:#4ade80">Access granted</h2>
+    <p>Welcome, administrator.</p>
+    <div class="out ok">FLAG{w34k_cr3d3nti4ls_k1ll_s3cur1ty}</div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" onclick="bg_close(event)">
+  <div class="modal">
+    <div class="modal-head">
+      <span id="m-title"></span>
+      <button onclick="close_modal()">✕</button>
+    </div>
+    <div class="modal-body" id="m-body"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// All flags visible in source — that's part of challenge 1
+const FLAGS = {
+  1:  'FLAG{s0urc3_c0d3_n3v3r_li3s}',
+  2:  'FLAG{c00k13s_4r3_t4sty_4nd_ins3cur3}',
+  3:  'FLAG{w34k_cr3d3nti4ls_k1ll_s3cur1ty}',
+  4:  'FLAG{h34d3rs_4r3_h1dd3n_t00}',
+  5:  'FLAG{r0b0ts_txt_1s_n0t_s3cur1ty}',
+  6:  'FLAG{d3f4ult_cr3ds_4r3_d4ng3r0us}',
+  7:  'FLAG{xss_r3fl3ct3d_1nj3ct10n}',
+  8:  'FLAG{sqli_byp4ss3d_l0g1n}',
+  9:  'FLAG{sqli_un10n_d4t4_3xtr4ct}',
+  10: 'FLAG{jwt_p4yl04d_t4mp3r3d}',
+  11: 'FLAG{1d0r_y0u_4r3_n0t_auth0r1z3d}',
+  12: 'FLAG{st0r3d_xss_p3rs1st3nt}',
+  13: 'FLAG{p4th_tr4v3rs4l_byp4ss}',
+  14: 'FLAG{bl1nd_sqli_0n3_b1t_4t_4_t1m3}',
+  15: 'FLAG{4cc3ss_c0ntr0l_byp4ss_h34d3r}',
+};
+const PTS = {1:100,2:100,3:100,4:100,5:100,6:150,7:200,8:200,9:250,10:250,11:200,12:250,13:350,14:400,15:400};
+const TOTAL = 15;
+const NAMES = {
+  1:'01 — Open Secrets', 2:'02 — Cookie Monster', 3:'03 — Locked Door',
+  4:'04 — Hidden in Plain Sight', 5:'05 — robots.txt', 6:'06 — Default Creds',
+  7:'07 — Reflected XSS', 8:'08 — SQL Injection — Login', 9:'09 — SQL Injection — Extract',
+  10:'10 — Trust Issues (JWT)', 11:'11 — IDOR', 12:'12 — Stored XSS',
+  13:'13 — Path Traversal', 14:'14 — SQL Injection — Blind', 15:'15 — Broken Access Control'
+};
+
+// Simulated DB for SQL challenges
+const DB_USERS = [
+  {id:1, username:'admin',   password:'s3cr3t!', role:'admin'},
+  {id:2, username:'alice',   password:'alice123', role:'user'},
+  {id:3, username:'bob',     password:'b0bpass',  role:'user'},
+  {id:4, username:'charlie', password:'ch4rlie',  role:'user'},
+];
+const DB_SECRETS = [
+  {id:1, note:'FLAG{sqli_un10n_d4t4_3xtr4ct}'},
+  {id:2, note:'server backup at /var/backup'},
+  {id:3, note:'deploy key: ssh-rsa AAAA...'},
+];
+const DB_PROFILES = [
+  {id:1000, username:'guest',   email:'guest@hacklab.sh',   bio:'Just browsing.'},
+  {id:1001, username:'you',     email:'you@hacklab.sh',     bio:'Your profile.'},
+  {id:1002, username:'alice',   email:'alice@hacklab.sh',   bio:'Security researcher.'},
+  {id:1003, username:'admin',   email:'admin@hacklab.sh',   bio:'FLAG{1d0r_y0u_4r3_n0t_auth0r1z3d}'},
+];
+
+// Stored XSS comment store
+let comments = [
+  {author:'alice', text:'Great CTF!'},
+  {author:'bob',   text:'Challenge 9 was tough.'},
+];
+
+function load()   { try { return JSON.parse(localStorage.getItem('hl15')||'{}'); } catch(e){ return {}; } }
+function save(o)  { localStorage.setItem('hl15', JSON.stringify(o)); }
+function getscore(){ const s=load(); return Object.keys(s).reduce((a,k)=>a+(s[k]?PTS[k]||0:0),0); }
+function mark(id) { const s=load(); s[id]=true; save(s); refresh(); }
+
+function refresh() {
+  const s = load();
+  const n = Object.values(s).filter(Boolean).length;
+  const sc = getscore();
+  document.getElementById('hdr-score').textContent = sc;
+  document.getElementById('sb-score').textContent = sc;
+  document.getElementById('prog-txt').textContent = `${n} / ${TOTAL} solved`;
+  document.getElementById('prog-fill').style.width = (n/TOTAL*100)+'%';
+  for (let i=1;i<=TOTAL;i++) {
+    const c = document.getElementById('c'+i);
+    if (!c) continue;
+    c.classList.toggle('solved', !!s[i]);
+    let t = c.querySelector('.solved-mark');
+    if (s[i] && !t) { t=document.createElement('div'); t.className='solved-mark'; t.textContent='✓ solved'; c.appendChild(t); }
+  }
+}
+
+function goto(name, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(name+'-page').classList.add('active');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+function open_ch(id) {
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('m-title').textContent = NAMES[id];
+  document.getElementById('m-body').innerHTML = build(id);
+  if (id===2)  { document.cookie='role=guest; path=/'; setTimeout(show_cookies,80); }
+  if (id===12) { render_comments(); }
+}
+function close_modal() { document.getElementById('overlay').classList.remove('open'); }
+function bg_close(e)   { if (e.target===document.getElementById('overlay')) close_modal(); }
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2800);
+}
+
+function submit(id, iid, oid) {
+  const v = document.getElementById(iid).value.trim();
+  const o = document.getElementById(oid);
+  if (v===FLAGS[id]) {
+    o.className='out ok'; o.textContent='✓ Correct! +'+PTS[id]+' pts';
+    mark(id); toast('Flag captured — +'+PTS[id]+' pts');
+  } else {
+    o.className='out err'; o.textContent='✗ Wrong flag.';
+  }
+}
+
+/* ═══════════════════════════════════════════
+   CHALLENGE BUILDERS
+═══════════════════════════════════════════ */
+function flag_row(id) {
+  return `<hr><div class="flag-row"><div class="f"><label>Flag</label><input type="text" id="f${id}" placeholder="FLAG{...}"></div><button class="btn go" onclick="submit(${id},'f${id}','o${id}')">Submit</button></div><div class="out" id="o${id}"></div>`;
+}
+
+function hint(text) {
+  return `<div class="hint" onclick="this.classList.toggle('open')">▶ hint<div class="hint-body">${text}</div></div>`;
+}
+
+function build(id) {
+  switch(id) {
+
+    // ── 1: View Source ────────────────────────
+    case 1: return `
+<p class="desc">Every page has a hidden layer — the raw source your browser downloads. Developers leave <strong>comments, keys, and flags</strong> in it.<br><br>Press <strong>Ctrl+U</strong> to view source. Search for FLAG.</p>
+${hint('Ctrl+U opens source view. Then Ctrl+F and search for "FLAG". Check HTML comments and the JS at the bottom.')}
+${flag_row(1)}`;
+
+    // ── 2: Cookie Manipulation ────────────────
+    case 2: return `
+<p class="desc">The server sets a cookie <code>role=guest</code> and trusts whatever comes back. Change it to <code>role=admin</code>.</p>
+${hint('DevTools → Application → Cookies → change role value to admin → click Check below.')}
+<label>Current cookies</label>
+<div class="code-block" id="cookie-show">loading...</div>
+<div style="display:flex;gap:0.5rem;margin-bottom:0.5rem">
+  <button class="btn" onclick="show_cookies()">Refresh</button>
+  <button class="btn go" onclick="check_cookie()">Check Role</button>
+</div>
+<div class="out" id="cookie-out"></div>
+${flag_row(2)}`;
+
+    // ── 3: Weak Admin Creds ───────────────────
+    case 3: return `
+<p class="desc">An admin panel is in the nav. The credentials are weak — and they're sitting in this page's source in a comment the developer forgot.</p>
+${hint('View source and search for "admin" or "credentials". Then close this and click Admin in the nav.')}
+${flag_row(3)}`;
+
+    // ── 4: Response Headers ───────────────────
+    case 4: return `
+<p class="desc">HTTP responses carry more than just the page — they include <strong>headers</strong> that most people never look at. This server is leaking something in a custom header.</p>
+${hint('DevTools → Network tab → reload → click any request → look at Response Headers for anything unusual. Try searching for X- headers.')}
+<p class="desc" style="margin-top:0.5rem">Since you can\'t actually inspect real network requests in this simulation, we\'ll fake it. Click below to see what the server "sent":</p>
+<button class="btn" onclick="show_headers()">View Response Headers</button>
+<div class="out" id="headers-out"></div>
+${flag_row(4)}`;
+
+    // ── 5: robots.txt ─────────────────────────
+    case 5: return `
+<p class="desc">The <code>robots.txt</code> file tells search crawlers which pages to skip. But it\'s public — so it accidentally reveals hidden paths.</p>
+${hint('In a real site: navigate to /robots.txt. Here, click below to simulate fetching it.')}
+<button class="btn" onclick="show_robots()">Fetch /robots.txt</button>
+<div class="out" id="robots-out"></div>
+<p class="desc" style="margin-top:0.75rem">Now visit the disallowed path:</p>
+<button class="btn" onclick="show_hidden_path()">GET /secret-admin-backup/</button>
+<div class="out" id="path-secret-out"></div>
+${flag_row(5)}`;
+
+    // ── 6: Default Creds ──────────────────────
+    case 6: return `
+<p class="desc">A monitoring dashboard was installed on this server and never reconfigured. It still uses the factory default credentials that ship with the software.</p>
+${hint('Common factory defaults: admin/admin, admin/password, root/root, user/user. Try them below.')}
+<label>Username</label>
+<input type="text" id="dc-user" placeholder="username">
+<label>Password</label>
+<input type="password" id="dc-pass" placeholder="password">
+<button class="btn go" onclick="try_defaults()">Login to Dashboard</button>
+<div class="out" id="dc-out"></div>
+${flag_row(6)}`;
+
+    // ── 7: Reflected XSS ──────────────────────
+    case 7: return `
+<p class="desc">The search box reflects input back using <strong>innerHTML</strong> — no escaping. Inject HTML that executes JavaScript. Call <code>xss_win()</code> to get the flag.</p>
+${hint('Try: <code>&lt;img src=x onerror="xss_win()"&gt;</code> — broken image fires the onerror handler.')}
+<div class="inline-row">
+  <input type="text" id="xss-in" placeholder="Search products...">
+  <button class="btn" onclick="run_xss()">Search</button>
+</div>
+<div style="font-size:0.72rem;color:#2a2a2a;margin-bottom:0.4rem">results for: <span id="xss-ref"></span></div>
+<div class="out" id="xss-out">No results.</div>
+${flag_row(7)}`;
+
+    // ── 8: SQLi Login Bypass ──────────────────
+    case 8: return `
+<p class="desc">This login form builds its SQL query like this:<br><br>
+<code>SELECT * FROM users WHERE username='INPUT' AND password='INPUT'</code><br><br>
+If you can <strong>break out of the string</strong> and comment out the rest, you can log in as anyone without knowing their password.</p>
+${hint("Try username: <code>' OR '1'='1</code> with any password. Or: <code>admin'--</code> which comments out the password check entirely.")}
+<label>Username</label>
+<input type="text" id="sqli-user" placeholder="username">
+<label>Password</label>
+<input type="text" id="sqli-pass" placeholder="password">
+<button class="btn go" onclick="sqli_login()">Login</button>
+<div class="out" id="sqli-out"></div>
+<div style="margin-top:0.75rem;font-size:0.72rem;color:#333">simulated query:</div>
+<div class="code-block" id="sqli-query">SELECT * FROM users WHERE username='' AND password=''</div>
+${flag_row(8)}`;
+
+    // ── 9: SQLi UNION Extract ─────────────────
+    case 9: return `
+<p class="desc">A product search runs:<br><br>
+<code>SELECT name, price FROM products WHERE name LIKE '%INPUT%'</code><br><br>
+Use a <strong>UNION</strong> to append a second query and pull data from the <code>secrets</code> table.</p>
+${hint("Close the LIKE string then UNION: <code>' UNION SELECT note, 1 FROM secrets--</code><br>The secrets table has columns: id, note")}
+<label>Search products</label>
+<div class="inline-row">
+  <input type="text" id="sqli2-in" placeholder="product name...">
+  <button class="btn" onclick="sqli_search()">Search</button>
+</div>
+<div style="font-size:0.72rem;color:#333;margin-bottom:0.4rem">simulated query:</div>
+<div class="code-block" id="sqli2-query">SELECT name, price FROM products WHERE name LIKE '%%'</div>
+<div class="out" id="sqli2-out" style="min-height:60px"></div>
+${flag_row(9)}`;
+
+    // ── 10: JWT Tamper ────────────────────────
+    case 10: {
+      const h = btoa(JSON.stringify({alg:"HS256",typ:"JWT"}));
+      const p = btoa(JSON.stringify({user:"guest",role:"user",exp:9999999999}));
+      const tok = h+'.'+p+'.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+      return `
+<p class="desc">Your token is <strong>header.payload.signature</strong>, all base64. The server checks role in the payload — but <strong>never verifies the signature</strong>. Decode, change role to <code>admin</code>, re-encode, submit.</p>
+${hint('Console: split on ".", atob(middlePart) → edit JSON → btoa(JSON.stringify({...})) → reassemble with original header + signature.')}
+<label>Your token (click to copy)</label>
+<div class="code-block" style="cursor:pointer" title="click to copy" onclick="navigator.clipboard.writeText(this.textContent)">${tok}</div>
+<label>Modified token</label>
+<input type="text" id="jwt-in" placeholder="header.payload.signature">
+<button class="btn go" onclick="verify_jwt()">Verify</button>
+<div class="out" id="jwt-out"></div>
+${flag_row(10)}`;
+    }
+
+    // ── 11: IDOR ──────────────────────────────
+    case 11: return `
+<p class="desc">Your profile is at <code>/profile?id=1001</code>. The app fetches any profile by ID with no authorization check. Someone else's profile contains the flag.</p>
+${hint('Try different ID numbers. The admin profile is around ID 1003.')}
+<label>Profile ID</label>
+<div class="inline-row">
+  <input type="text" id="idor-id" placeholder="1001" value="1001">
+  <button class="btn" onclick="fetch_profile()">Fetch Profile</button>
+</div>
+<div class="out" id="idor-out" style="min-height:80px"></div>
+${flag_row(11)}`;
+
+    // ── 12: Stored XSS ────────────────────────
+    case 12: return `
+<p class="desc">This comment board saves input to the "database" and renders it back with <strong>innerHTML</strong>. Inject a script that runs for every visitor. Call <code>stored_xss_win()</code>.</p>
+${hint('Try posting: <code>&lt;img src=x onerror="stored_xss_win()"&gt;</code> as your comment. It will execute when the page renders.')}
+<label>Post a comment</label>
+<input type="text" id="comment-author" placeholder="Your name">
+<textarea id="comment-text" placeholder="Your comment..."></textarea>
+<button class="btn go" onclick="post_comment()">Post</button>
+<hr>
+<div id="comments-section"></div>
+${flag_row(12)}`;
+
+    // ── 13: Path Traversal ────────────────────
+    case 13: return `
+<p class="desc">A file viewer strips <code>../</code> from the filename — but runs the replace <strong>once</strong>. The secret file is at <code>../../secret.txt</code>. Bypass the filter.</p>
+${hint('If you write <code>....//</code>, removing inner <code>../</code> leaves <code>../</code>. Try: <code>....//....//secret.txt</code>')}
+<div class="inline-row">
+  <input type="text" id="path-in" placeholder="readme.txt">
+  <button class="btn" onclick="fetch_file()">Fetch</button>
+</div>
+<div style="font-size:0.7rem;color:#2a2a2a;margin-bottom:0.6rem">valid: readme.txt · docs/guide.txt · docs/faq.txt</div>
+<div class="out" id="path-out">waiting...</div>
+${flag_row(13)}`;
+
+    // ── 14: Blind SQLi ────────────────────────
+    case 14: return `
+<p class="desc">This endpoint checks if a username exists — returning <strong>200</strong> (found) or <strong>404</strong> (not found). The username is injected into a query. No data is returned, but you can ask true/false questions to extract the admin password one character at a time.</p>
+${hint("Try: <code>admin' AND SUBSTR(password,1,1)='s'--</code> — if it returns 200, the first char is 's'. The admin password is: s3cr3t! — verify each character.")}
+<label>Username (injectable)</label>
+<div class="inline-row">
+  <input type="text" id="blind-in" placeholder="admin">
+  <button class="btn" onclick="blind_check()">Check</button>
+</div>
+<div style="font-size:0.72rem;color:#333;margin-bottom:0.4rem">simulated query:</div>
+<div class="code-block" id="blind-query">SELECT id FROM users WHERE username='admin'</div>
+<div class="out" id="blind-out"></div>
+<hr>
+<p class="desc">Use the checker above to verify. Once you understand blind SQLi, enter the flag:</p>
+${flag_row(14)}`;
+
+    // ── 15: Broken Access Control via Header ──
+    case 15: return `
+<p class="desc">The <code>/api/secret</code> endpoint checks your role — but only reads it from the <strong>X-User-Role</strong> request header. The frontend sets it to <code>user</code>. You can set it to anything.</p>
+${hint('Open DevTools → Network. Or just use the override below — set X-User-Role: admin before clicking Fetch Secret.')}
+<label>X-User-Role header value</label>
+<div class="inline-row">
+  <input type="text" id="role-hdr" placeholder="user" value="user">
+  <button class="btn go" onclick="fetch_secret_api()">GET /api/secret</button>
+</div>
+<div style="font-size:0.72rem;color:#333;margin-bottom:0.4rem">request preview:</div>
+<div class="code-block" id="api-req-preview">GET /api/secret<br>X-User-Role: user</div>
+<div class="out" id="api-out"></div>
+${flag_row(15)}`;
+
+    default: return '<p class="desc">Challenge not found.</p>';
+  }
+}
+
+/* ═══════════════════════════════════════════
+   CHALLENGE LOGIC
+═══════════════════════════════════════════ */
+
+// Ch2 — cookies
+function show_cookies() { const el=document.getElementById('cookie-show'); if(el) el.textContent=document.cookie||'(none)'; }
+function check_cookie() {
+  const m = document.cookie.match(/role=([^;]+)/);
+  const role = m ? m[1].trim() : 'guest';
+  const o = document.getElementById('cookie-out');
+  if (role==='admin') { o.className='out ok'; o.textContent='role: admin\n\nFLAG: FLAG{c00k13s_4r3_t4sty_4nd_ins3cur3}'; }
+  else { o.className='out err'; o.textContent=`role: ${role}\n\nDenied. Change cookie to role=admin.`; }
+  setTimeout(show_cookies,80);
+}
+
+// Ch4 — headers
+function show_headers() {
+  const o = document.getElementById('headers-out');
+  o.className='out info';
+  o.textContent = 'HTTP/1.1 200 OK\nContent-Type: text/html\nServer: Apache/2.4.51\nX-Powered-By: PHP/7.4.3\nX-Debug-Flag: FLAG{h34d3rs_4r3_h1dd3n_t00}\nCache-Control: no-store\nX-Frame-Options: SAMEORIGIN';
+}
+
+// Ch5 — robots.txt
+function show_robots() {
+  const o = document.getElementById('robots-out');
+  o.className='out info';
+  o.textContent = 'User-agent: *\nDisallow: /admin/\nDisallow: /secret-admin-backup/\nDisallow: /internal-api/\nDisallow: /.git/';
+}
+function show_hidden_path() {
+  const o = document.getElementById('path-secret-out');
+  o.className='out ok';
+  o.textContent = '200 OK — /secret-admin-backup/\n\nindex.html found:\n\n<h1>Backup portal</h1>\nFLAG{r0b0ts_txt_1s_n0t_s3cur1ty}\nDB backup: dump_2024.sql.gz';
+}
+
+// Ch6 — default creds
+function try_defaults() {
+  const u=document.getElementById('dc-user').value;
+  const p=document.getElementById('dc-pass').value;
+  const o=document.getElementById('dc-out');
+  const defaults = [['admin','admin'],['admin','password'],['root','root'],['user','user'],['admin','1234'],['monitor','monitor']];
+  const hit = defaults.find(([du,dp])=>du===u&&dp===p);
+  if (hit) { o.className='out ok'; o.textContent=`✓ Login successful with ${u}/${p}\n\nWelcome to MonitorDash v2.1\nFLAG{d3f4ult_cr3ds_4r3_d4ng3r0us}`; }
+  else { o.className='out err'; o.textContent='Invalid credentials.'; }
+}
+
+// Ch7 — reflected XSS
+function run_xss() {
+  const v = document.getElementById('xss-in').value;
+  document.getElementById('xss-ref').innerHTML = v; // VULN
+  document.getElementById('xss-out').textContent = 'No results found.';
+}
+function xss_win() {
+  const o = document.getElementById('xss-out');
+  if (o) { o.className='out ok'; o.textContent='XSS fired!\nFLAG: FLAG{xss_r3fl3ct3d_1nj3ct10n}'; }
+}
+
+// Ch8 — SQLi login bypass (simulated)
+function sqli_login() {
+  const u = document.getElementById('sqli-user').value;
+  const p = document.getElementById('sqli-pass').value;
+  const o = document.getElementById('sqli-out');
+  const q = document.getElementById('sqli-query');
+  q.textContent = `SELECT * FROM users WHERE username='${u}' AND password='${p}'`;
+
+  // Detect classic SQLi patterns
+  const bypass = /'\s*OR\s*'?1'?='?1/i.test(u) || /'\s*OR\s*1=1/i.test(u)
+              || /admin'(\s*--|\s*#)/i.test(u) || /'\s*--/i.test(u)
+              || /'\s*OR\s*'[^']*'='[^']*/i.test(u);
+
+  if (bypass) {
+    o.className='out ok';
+    o.textContent='✓ Injection successful! Logged in as: admin\n\nFLAG: FLAG{sqli_byp4ss3d_l0g1n}';
+    return;
+  }
+  const user = DB_USERS.find(row=>row.username===u && row.password===p);
+  if (user) { o.className='out ok'; o.textContent=`✓ Logged in as: ${user.username} (role: ${user.role})`; }
+  else { o.className='out err'; o.textContent='✗ Invalid credentials.'; }
+}
+
+// Ch9 — SQLi UNION extract (simulated)
+const PRODUCTS = [
+  {name:'Widget A', price:'$9.99'},
+  {name:'Widget B', price:'$14.99'},
+  {name:'Gadget Pro', price:'$49.99'},
+];
+function sqli_search() {
+  const raw = document.getElementById('sqli2-in').value;
+  const o   = document.getElementById('sqli2-out');
+  const q   = document.getElementById('sqli2-query');
+  q.textContent = `SELECT name, price FROM products WHERE name LIKE '%${raw}%'`;
+
+  // Detect UNION injection
+  const unionMatch = /'\s*UNION\s+SELECT\s+(.+)\s+FROM\s+(\w+)/i.exec(raw);
+  if (unionMatch) {
+    const fromTable = unionMatch[2].toLowerCase();
+    if (fromTable === 'secrets') {
+      o.className='out ok';
+      o.innerHTML = `<div style="color:#4ade80;margin-bottom:0.5rem">UNION injection successful! Dumping secrets table:</div>` +
+        `<div class="table-wrap"><table><tr><th>col1</th><th>col2</th></tr>` +
+        DB_SECRETS.map(r=>`<tr><td>${r.note}</td><td>1</td></tr>`).join('') +
+        `</table></div>`;
+    } else {
+      o.className='out err'; o.textContent=`Table "${fromTable}" doesn't exist or has no readable columns.`;
+    }
+    return;
+  }
+  if (raw.includes("'")) {
+    o.className='out err'; o.textContent='SQL syntax error near: ' + raw;
+    return;
+  }
+  const results = PRODUCTS.filter(p=>p.name.toLowerCase().includes(raw.toLowerCase()));
+  if (!results.length) { o.className='out'; o.textContent='No products found.'; return; }
+  o.innerHTML = `<div class="table-wrap"><table><tr><th>name</th><th>price</th></tr>`+
+    results.map(r=>`<tr><td>${r.name}</td><td>${r.price}</td></tr>`).join('')+`</table></div>`;
+}
+
+// Ch10 — JWT tamper
+function verify_jwt() {
+  const val = document.getElementById('jwt-in').value.trim();
+  const o   = document.getElementById('jwt-out');
+  const parts = val.split('.');
+  if (parts.length!==3) { o.className='out err'; o.textContent='Need header.payload.signature (3 parts).'; return; }
+  try {
+    const p = JSON.parse(atob(parts[1])); // VULN: sig never checked
+    if (p.role==='admin') { o.className='out ok'; o.textContent='role: admin — accepted\nFLAG: FLAG{jwt_p4yl04d_t4mp3r3d}'; }
+    else { o.className='out err'; o.textContent=`role: "${p.role}" — denied. Change to "admin".`; }
+  } catch(e) { o.className='out err'; o.textContent='Could not decode payload. Valid base64 JSON?'; }
+}
+
+// Ch11 — IDOR
+function fetch_profile() {
+  const id = parseInt(document.getElementById('idor-id').value);
+  const o  = document.getElementById('idor-out');
+  const profile = DB_PROFILES.find(p=>p.id===id);
+  if (profile) {
+    o.className = id===1003 ? 'out ok' : 'out info';
+    o.textContent = `200 OK — /profile?id=${id}\n\nusername : ${profile.username}\nemail    : ${profile.email}\nbio      : ${profile.bio}`;
+  } else {
+    o.className='out err'; o.textContent=`404 — No profile found for id=${id}`;
+  }
+}
+
+// Ch12 — stored XSS
+function render_comments() {
+  const sec = document.getElementById('comments-section');
+  if (!sec) return;
+  sec.innerHTML = '<div style="font-size:0.7rem;color:#333;margin-bottom:0.5rem">comments:</div>' +
+    comments.map(c=>`<div style="border:1px solid #1a1a1a;border-radius:3px;padding:0.5rem 0.7rem;margin-bottom:0.4rem;font-size:0.78rem"><span style="color:#555">${c.author}</span>: <span id="cm-${Math.random().toString(36).slice(2)}">${c.text}</span></div>`).join('');
+  // VULN: innerHTML used — injected scripts will fire
+  sec.querySelectorAll('[id^=cm-]').forEach(el => {
+    const raw = el.textContent;
+    el.innerHTML = raw; // re-render as HTML — stored XSS fires here
+  });
+}
+function post_comment() {
+  const author = document.getElementById('comment-author').value || 'anonymous';
+  const text   = document.getElementById('comment-text').value;
+  if (!text.trim()) return;
+  comments.push({author, text});
+  document.getElementById('comment-text').value = '';
+  render_comments();
+}
+function stored_xss_win() {
+  const o = document.getElementById('sqli2-out'); // fallback
+  toast('Stored XSS fired! FLAG: FLAG{st0r3d_xss_p3rs1st3nt}');
+  const sec = document.getElementById('comments-section');
+  if (sec) {
+    const div = document.createElement('div');
+    div.className='out ok'; div.style.marginTop='0.5rem';
+    div.textContent='Stored XSS executed for every visitor!\nFLAG: FLAG{st0r3d_xss_p3rs1st3nt}';
+    sec.prepend(div);
+  }
+}
+
+// Ch13 — path traversal
+const FS2 = {
+  'readme.txt': 'HackLab file server v1.0\nFor documentation only.',
+  'docs/guide.txt': 'Getting Started — see the challenges page.',
+  'docs/faq.txt':   'Q: Is this secure?\nA: No. That\'s the point.',
+  '../../secret.txt': 'FLAG{p4th_tr4v3rs4l_byp4ss}\n\nYou escaped the web root.',
+};
+function fetch_file() {
+  const raw = document.getElementById('path-in').value.trim();
+  const o   = document.getElementById('path-out');
+  if (FS2[raw]) { o.className='out info'; o.textContent=`200 OK\n\n${FS2[raw]}`; return; }
+  const bypass = /\.\.\.\.\//i.test(raw)||/%2e%2e/i.test(raw)||/\.\.%2f/i.test(raw);
+  if (bypass && raw.toLowerCase().includes('secret')) { o.className='out ok'; o.textContent=`Bypass successful!\n\n${FS2['../../secret.txt']}`; return; }
+  if (raw.includes('../')) { o.className='out err'; o.textContent=`403 — ../ detected.\nAfter sanitize: "${raw.replace(/\.\.\//g,'')}"\n\nThe filter runs once. Disguise it.`; return; }
+  o.className='out err'; o.textContent=`404 — "${raw}" not found.`;
+}
+
+// Ch14 — blind SQLi
+function blind_check() {
+  const raw = document.getElementById('blind-in').value;
+  const o   = document.getElementById('blind-out');
+  const q   = document.getElementById('blind-query');
+  q.textContent = `SELECT id FROM users WHERE username='${raw}'`;
+
+  // Simulate blind response
+  // Check for injection with SUBSTR / substring comparison
+  const substrMatch = /^(\w+)'\s*AND\s+SUBSTR\(password,(\d+),1\)='(.+)'--/i.exec(raw);
+  if (substrMatch) {
+    const uname = substrMatch[1];
+    const pos   = parseInt(substrMatch[2]) - 1;
+    const char  = substrMatch[3];
+    const user  = DB_USERS.find(u=>u.username===uname);
+    if (user && user.password[pos] === char) {
+      o.className='out ok'; o.textContent=`HTTP 200 — User found.\n\nThe condition is TRUE: char ${pos+1} of ${uname}'s password is '${char}'`;
+    } else {
+      o.className='out err'; o.textContent=`HTTP 404 — Not found.\n\nThe condition is FALSE.`;
+    }
+    return;
+  }
+  // Plain lookup
+  if (raw.includes("'")) { o.className='out err'; o.textContent='HTTP 500 — SQL syntax error.'; return; }
+  const user = DB_USERS.find(u=>u.username===raw);
+  if (user) { o.className='out ok'; o.textContent='HTTP 200 — User exists.'; }
+  else { o.className='out err'; o.textContent='HTTP 404 — User not found.'; }
+}
+
+// Ch15 — broken access control via header
+function fetch_secret_api() {
+  const role = document.getElementById('role-hdr').value.trim() || 'user';
+  const o    = document.getElementById('api-out');
+  const prev = document.getElementById('api-req-preview');
+  prev.innerHTML = `GET /api/secret<br>X-User-Role: ${role}`;
+  if (role === 'admin') {
+    o.className='out ok';
+    o.textContent='200 OK\n\n{"secret": "FLAG{4cc3ss_c0ntr0l_byp4ss_h34d3r}", "db_host": "internal-db.local", "db_pass": "sup3r_s3cr3t"}';
+  } else {
+    o.className='out err';
+    o.textContent=`403 Forbidden\n\n{"error": "Role '${role}' is not authorized. Required: admin"}`;
+  }
+}
+
+// Admin panel (ch3)
+function try_admin() {
+  const u=document.getElementById('a-user').value;
+  const p=document.getElementById('a-pass').value;
+  const o=document.getElementById('admin-out');
+  if (u==='admin'&&p==='letmein123') { // VULN: hardcoded creds
+    document.getElementById('admin-login').style.display='none';
+    document.getElementById('admin-ok').style.display='block';
+  } else { o.className='out err'; o.textContent='Invalid credentials.'; }
+}
+
+refresh();
+</script>
+</body>
+</html>
