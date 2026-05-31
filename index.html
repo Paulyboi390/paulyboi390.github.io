@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>999 Hub</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, Arial, sans-serif;
+      color: white;
+      background-image: url('bg.jpg');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+    }
+
+    .overlay {
+      min-height: 100vh;
+      background: radial-gradient(circle at top, rgba(0,0,0,0.55), rgba(0,0,0,0.92));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 900px;
+      width: 100%;
+    }
+
+    .card {
+      background: rgba(0,0,0,0.72);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      backdrop-filter: blur(10px);
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 52px;
+      margin: 0;
+      letter-spacing: 1px;
+    }
+
+    .tagline {
+      margin-top: 10px;
+      font-size: 18px;
+      color: #d0d0d0;
+      line-height: 1.5;
+    }
+
+    .join-btn {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 14px 26px;
+      background: #5865F2;
+      color: white;
+      text-decoration: none;
+      border-radius: 12px;
+      font-weight: 600;
+      transition: 0.2s;
+    }
+
+    .join-btn:hover {
+      background: #4752c4;
+      transform: translateY(-2px);
+    }
+
+    .grid {
+      margin-top: 25px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+
+    .feature {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 14px;
+      padding: 14px;
+      text-align: left;
+    }
+
+    .feature b {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 16px;
+    }
+
+    .embed {
+      margin-top: 25px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 16px;
+      text-align: left;
+    }
+
+    .embed-title {
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .embed-link {
+      color: #5865F2;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .footer {
+      margin-top: 25px;
+      text-align: center;
+      color: #aaa;
+      font-size: 13px;
+    }
+
+    .source-box {
+      margin-top: 18px;
+      padding: 14px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      text-align: left;
+    }
+
+    .source-box a {
+      color: #00aaff;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .source-box a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay">
+    <div class="container">
+      <div class="card">
+        <h1>999 Hub</h1>
+
+        <div class="tagline">
+          Your go to server for everything unreleased Juice WRLD<br><br>
+          ✂️ Snippet notifications<br>
+          💰 Group buy updates<br>
+          📁 OG file drops<br>
+          🎵 Session leak updates<br>
+          🎤 New surface alerts<br>
+          ☀️ Song of the Day<br><br>
+          The moment something drops, it gets posted. 🔥
+        </div>
+
+        <a class="join-btn" href="https://discord.gg/QEUTFZpS4K" target="_blank">
+          Join Discord
+        </a>
+
+        <div class="embed">
+          <div class="embed-title">🔗 Invite Link</div>
+          <a class="embed-link" href="https://discord.gg/QEUTFZpS4K" target="_blank">
+            discord.gg/QEUTFZpS4K
+          </a>
+        </div>
+
+        <div class="grid">
+          <div class="feature">✂️ <b>Snippets</b>Instant snippet notifications</div>
+          <div class="feature">💰 <b>Group Buys</b>Real-time updates</div>
+          <div class="feature">📁 <b>OG Files</b>Exclusive drops</div>
+          <div class="feature">🎵 <b>Sessions</b>Leak updates</div>
+          <div class="feature">🎤 <b>Surfaces</b>New leak alerts</div>
+          <div class="feature">☀️ <b>Daily Song</b>Song of the Day picks</div>
+        </div>
+
+        <div class="source-box">
+          <b>Source Code</b><br>
+          View the full website code here:<br>
+          <a href="https://github.com/Paulyboi390/paulyboi390.github.io/" target="_blank">
+            GitHub Repository
+          </a>
+        </div>
+
+        <div class="footer">
+          The moment something drops, it gets posted.
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
